@@ -240,6 +240,10 @@ input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-wi
 .icc i{width:22px;height:22px;border-radius:50%;border:1px solid var(--line)}
 .tmline{display:flex;align-items:center;gap:6px;margin:-3px 0 5px 13px;padding:2px 0;font-size:12.500px;color:var(--mute)}
 .tmline .ic{width:13px;height:13px}
+.seg{position:relative}
+.seg button{position:relative;z-index:1}
+.segpill{position:absolute;top:3px;bottom:3px;border-radius:9px;background:var(--accent);z-index:0;pointer-events:none}
+.seg button.sliding{background:transparent}
 /* анимации */
 #view{overflow-x:hidden}
 .btn,.chip,.plus,.ico,.seg button,.week button,#tabs button,.x,.pick,.sw button,.gear{transition:transform .12s ease,background-color .2s,border-color .2s,color .2s,opacity .2s}
@@ -482,11 +486,11 @@ const stopClose=()=>{clearTimeout(closeT);closeA.forEach(a=>a.cancel());closeA=[
 // Все анимации запускаются из кода через element.animate: так они одинаково работают в Safari на iPhone, Chrome и остальных браузерах
 function animateView(kind){
   if(!view.animate)return;
-  const from=kind==='left'?'translateX(28px)':kind==='right'?'translateX(-28px)':kind==='fade'?'none':'translateY(14px)';
+  const side=kind==='left'||kind==='right',from=kind==='left'?'translateX(12px)':kind==='right'?'translateX(-12px)':kind==='fade'?'none':'translateY(14px)';
   if(kind!=='bars'){
     let els=[];[...view.children].forEach(el=>{if(el.classList.contains('wgrid'))els.push(...el.children);else els.push(el)});
     if(kind==='soft')els=els.filter(el=>/\b(card|empty|wcard)\b/.test(el.className));
-    els.forEach((el,i)=>el.animate([{opacity:0,transform:from},{opacity:1,transform:'none'}],{duration:340,delay:Math.min(i,6)*40,easing:EASE,fill:'backwards'}));
+    els.forEach((el,i)=>el.animate([{opacity:0,transform:from},{opacity:1,transform:'none'}],{duration:side?300:340,delay:side?0:Math.min(i,6)*40,easing:side?'cubic-bezier(.4,0,.2,1)':EASE,fill:'backwards'}));
   }
   view.querySelectorAll('.col .b').forEach(el=>el.animate([{transform:'scaleY(0)'},{transform:'none'}],{duration:500,easing:EASE}));
 }
@@ -991,7 +995,13 @@ function segMark(el){
 }
 function segSlide(m){
   if(!m)return;const seg=m.root.querySelectorAll('.seg')[m.i],on=seg&&seg.querySelector('.on');if(!on||!on.animate)return;
-  const dx=m.x-on.getBoundingClientRect().left;if(dx)on.animate([{transform:'translateX('+dx+'px)'},{transform:'none'}],{duration:280,easing:EASE});
+  const sr=seg.getBoundingClientRect(),nr=on.getBoundingClientRect(),dx=m.x-nr.left;if(!dx)return;
+  // Под надписями едет отдельная плашка, сами надписи стоят на месте
+  const pill=document.createElement('i');pill.className='segpill';pill.style.left=(nr.left-sr.left-seg.clientLeft)+'px';pill.style.width=nr.width+'px';
+  seg.appendChild(pill);on.classList.add('sliding');
+  const opt={duration:360,easing:'cubic-bezier(.4,0,.2,1)'},a=pill.animate([{transform:'translateX('+dx+'px)'},{transform:'none'}],opt);
+  try{on.animate([{color:'var(--mute)'},{color:'var(--accent-ink)'}],opt)}catch(e){}
+  const done=()=>{pill.remove();on.classList.remove('sliding')};a.onfinish=done;a.oncancel=done;
 }
 function tap(t){
   if(t.id==='bg'){closeSheet();return true}
