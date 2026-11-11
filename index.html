@@ -991,17 +991,14 @@ ACT.demo=()=>{
 // Переключатели: подсветка плавно переезжает на выбранную кнопку
 function segMark(el){
   const seg=el.closest('.seg');if(!seg||el.classList.contains('on'))return null;const on=seg.querySelector('.on');if(!on)return null;
-  const root=el.closest('#sheet')?$('sheet'):view;return{root,i:[...root.querySelectorAll('.seg')].indexOf(seg),x:on.getBoundingClientRect().left};
+  const root=el.closest('#sheet')?$('sheet'):view;return{root,i:[...root.querySelectorAll('.seg')].indexOf(seg),oi:[...seg.children].indexOf(on)};
 }
 function segSlide(m){
-  if(!m)return;const seg=m.root.querySelectorAll('.seg')[m.i],on=seg&&seg.querySelector('.on');if(!on||!on.animate)return;
-  const sr=seg.getBoundingClientRect(),nr=on.getBoundingClientRect(),dx=m.x-nr.left;if(!dx)return;
-  // Под надписями едет отдельная плашка, сами надписи стоят на месте
-  const pill=document.createElement('i');pill.className='segpill';pill.style.left=(nr.left-sr.left-seg.clientLeft)+'px';pill.style.width=nr.width+'px';
-  seg.appendChild(pill);on.classList.add('sliding');
-  const opt={duration:360,easing:'cubic-bezier(.4,0,.2,1)'},a=pill.animate([{transform:'translateX('+dx+'px)'},{transform:'none'}],opt);
-  try{on.animate([{color:'var(--mute)'},{color:'var(--accent-ink)'}],opt)}catch(e){}
-  const done=()=>{pill.remove();on.classList.remove('sliding')};a.onfinish=done;a.oncancel=done;
+  if(!m)return;const seg=m.root.querySelectorAll('.seg')[m.i],on=seg&&seg.querySelector('.on'),old=seg&&seg.children[m.oi];if(!on||!on.animate||!old||old===on)return;
+  // Без движения: подсветка гаснет на прежней кнопке и проявляется на новой
+  const cs=getComputedStyle(on),acc=cs.backgroundColor,ink=cs.color,mute=getComputedStyle(old).color,opt={duration:280,easing:'ease-in-out'};
+  on.animate([{backgroundColor:'rgba(0,0,0,0)',color:mute},{backgroundColor:acc,color:ink}],opt);
+  old.animate([{backgroundColor:acc,color:ink},{backgroundColor:'rgba(0,0,0,0)',color:mute}],opt);
 }
 function tap(t){
   if(t.id==='bg'){closeSheet();return true}
