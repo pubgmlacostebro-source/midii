@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0d0e11">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Мидии">
 <link rel="apple-touch-icon" id="ati" href="icon-dark.png">
 <link rel="icon" type="image/png" href="icon-dark.png">
@@ -227,13 +227,12 @@ h3{font-size:12px;margin:18px 0 8px;color:var(--mute);text-transform:uppercase;l
 [data-theme=light] .tag{background:#e3e6ec}
 [data-theme=light] .tag.ok{background:#d9f3e3;color:#0c8a45}
 [data-theme=light] .col.on{background:rgba(0,0,0,.06)}
-[data-theme=light] #sbar{background:#15171c}
 [data-theme=light] #bg{background:rgba(20,22,28,.45)}
 [data-theme=light] #top.sc{box-shadow:0 6px 18px rgba(0,0,0,.12)}
 [data-theme=light] .tgl{color:#1583c4}
 #toast{color:#fff}
-/* на экране «Домой» страница должна занимать весь экран, иначе под нижним меню остаётся пустая полоса */
-.app,.app body{height:100vh}
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;min-height:44px}
+.two>div{min-width:0}
 .icons button{font-weight:800;font-size:22px;display:grid;place-items:center}
 .icprev{width:76px;height:76px;border-radius:18px;flex:none;border:1px solid var(--line)}
 .icset{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
@@ -814,6 +813,17 @@ function ledger(){
   for(const id in S.pays){const y=S.pays[id];at(y.t==='w'?w:p,y.ref).got+=+y.sum||0}
   return{w,p};
 }
+// Почасовая работа на месте по дням: сколько начислено за день и сколько из этого уже оплачено.
+// Оплата с пометкой «за день» идёт в этот день, оплата без пометки закрывает самые старые неоплаченные дни
+function placeDays(pid){
+  const ds=[];for(const d in S.days){if(d>today)continue;const P=S.days[d].p[pid];if(!P)continue;const r=placeCalc(P).rev;if(r)ds.push({d,due:r,got:0})}
+  ds.sort((a,b)=>a.d<b.d?-1:1);let pool=0;
+  for(const id in S.pays){const y=S.pays[id];if(y.t!=='p'||y.ref!==pid)continue;const x=y.for&&ds.find(k=>k.d===y.for);if(x)x.got+=+y.sum||0;else pool+=+y.sum||0}
+  ds.forEach(x=>{if(x.got>x.due){pool+=x.got-x.due;x.got=x.due}});
+  ds.forEach(x=>{const use=Math.min(x.due-x.got,pool);x.got+=use;pool-=use});
+  return ds;
+}
+const dayRows=pid=>placeDays(pid).filter(x=>x.due-x.got>.5).map(x=>`<div class="top" style="padding-left:15px"><span class="sp"><b style="font-size:14px">${WD[pd(x.d).getDay()]}, ${dLong(x.d)}</b><small class="num">начислено ${fmt(x.due)}${x.got?' · получено '+fmt(x.got):''}</small></span><b class="num">${rub(x.due-x.got)}</b><button class="btn sm" data-act="pay" data-t="p" data-ref="${pid}" data-for="${x.d}">Получил</button></div>`).join('');
 const objBal=ob=>{const r=(+ob.price||0)-(+ob.received||0);return ob.price==null?'<span class="mute">цена не указана</span>':r>0?`<b class="num">${rub(r)}</b>`:r<0?`<span class="num mute">переплата ${rub(-r)}</span>`:'<span class="good">оплачен</span>'};
 const balHtml=(b,over)=>b>0?`<b class="num">${rub(b)}</b>`:b<0?`<span class="num ${over==='переплата'?'mute':'good'}">${over} ${over==='переплата'?'':'+'}${rub(-b)}</span>`:'<span class="good">расчёт</span>';
 VIEWS.pays=()=>{
@@ -826,24 +836,24 @@ VIEWS.pays=()=>{
     h+=`<div class="card">${ids.map(id=>row('w',id,W(id),L.w[id],'заработал','выплачено','Выплатить','переплата')).join('')||'<div class="mute">Пока некому платить: отработанных смен нет.</div>'}</div>
       <div class="mute" style="font-size:12.5px">Считаются смены до сегодняшнего дня включительно.</div>`}
   else{const ids=Object.keys(L.p).sort((a,b)=>(L.p[b].due-L.p[b].got)-(L.p[a].due-L.p[a].got));
-    h+=`<h3>Почасовая работа по местам</h3><div class="card">${ids.map(id=>row('p',id,PL(id),L.p[id],'начислено','получено','Получил','доп. прибыль')).join('')||'<div class="mute">Почасовой работы пока нет.</div>'}</div>
+    h+=`<h3>Почасовая работа по местам</h3><div class="card">${ids.map(id=>row('p',id,PL(id),L.p[id],'начислено','получено','Всё сразу','доп. прибыль')+dayRows(id)).join('')||'<div class="mute">Почасовой работы пока нет.</div>'}</div>
       <h3>Объекты</h3><div class="card">${objs.map(id=>{const ob=S.objs[id];return`<div class="top"><button class="sp" style="text-align:left" data-act="objPay" data-id="${id}"><b>${esc(ob.name)}</b><small class="num">цена ${ob.price==null?'—':fmt(ob.price)} · получено ${fmt(ob.received)}</small></button><span style="text-align:right">${objBal(ob)}</span><button class="btn sm" data-act="objPay" data-id="${id}">Изменить</button></div>`}).join('')||'<div class="mute">Объектов пока нет.</div>'}</div>`}
   return h;
 };
 ACT.ptab=({t})=>{ui.pt=t;render('soft')};
-SHEETS.pay=({t,ref})=>{
-  const L=ledger(),m=(t==='w'?L.w:L.p)[ref]||{due:0,got:0},bal=m.due-m.got,x=t==='w'?W(ref):PL(ref);
+SHEETS.pay=({t,ref,f})=>{
+  const L=ledger(),dy=f&&placeDays(ref).find(k=>k.d===f),m=dy||(t==='w'?L.w:L.p)[ref]||{due:0,got:0},bal=m.due-m.got,x=t==='w'?W(ref):PL(ref);
   const hist=Object.keys(S.pays).filter(id=>S.pays[id].t===t&&S.pays[id].ref===ref).sort((a,b)=>S.pays[a].date<S.pays[b].date?1:-1);
-  return head(x.name,t==='w'?'Выплата работнику':'Оплата от заказчика, почасовая')+
+  return head(x.name,t==='w'?'Выплата работнику':f?'Оплата от заказчика за '+WD[pd(f).getDay()]+', '+dLong(f):'Оплата от заказчика, почасовая')+
     `<div class="box" style="margin-top:0"><div><span>${t==='w'?'Заработал':'Начислено'}</span><span class="num">${rub(m.due)}</span></div><div><span>${t==='w'?'Выплачено':'Получено'}</span><span class="num">${rub(m.got)}</span></div><div class="big"><span>${t==='w'?'Осталось выплатить':'Осталось получить'}</span><span class="num">${rub(bal)}</span></div></div>
-    <div class="two" style="margin-top:12px"><div><label class="lbl">Сумма, ₽</label><input id="ps" inputmode="numeric" value="${bal>0?Math.round(bal):''}"></div><div><label class="lbl">Дата</label><input id="pdt" type="date" value="${today}"></div></div>
+    <div class="two" style="margin-top:12px"><div><label class="lbl">Сумма, ₽</label><input id="ps" inputmode="numeric" value="${bal>0?Math.round(bal):''}"></div><div><label class="lbl">${f?'За какой день':'Дата'}</label><input id="pdt" type="date" value="${f||today}"></div></div>
     <div class="fld"><label>Заметка</label><input id="pn" placeholder="Например, наличными"></div>
-    <button class="btn pri full" data-act="payAdd" data-t="${t}" data-ref="${ref}">${t==='w'?'Записать выплату':'Записать оплату'}</button>
+    <button class="btn pri full" data-act="payAdd" data-t="${t}" data-ref="${ref}" data-for="${f||''}">${t==='w'?'Записать выплату':'Записать оплату'}</button>
     <h3>История</h3>${hist.map(id=>{const y=S.pays[id];return`<div class="crow"><span class="nm num">${dShort(y.date)}.${y.date.slice(0,4)}${y.note?` <span class="mute" style="font-weight:400">· ${esc(y.note)}</span>`:''}</span><span class="num">${rub(y.sum)}</span><button class="x" data-act="payDel" data-id="${id}" aria-label="Удалить запись">✕</button></div>`}).join('')||'<div class="mute" style="font-size:13px">Записей пока нет</div>'}`;
 };
-ACT.pay=({t,ref})=>openSheet('pay',{t,ref});
-ACT.payAdd=({t,ref})=>{const s=num($('ps').value);if(!s||s<0)return toast('Введите сумму');
-  const id=uid();S.pays[id]={t,ref,sum:s,date:$('pdt').value||today,note:$('pn').value.trim()};save('pay/'+id);toast(t==='w'?'Выплата записана':'Оплата записана');renderSheet()};
+ACT.pay=({t,ref,for:f})=>openSheet('pay',{t,ref,f:f||''});
+ACT.payAdd=({t,ref,for:f})=>{const s=num($('ps').value);if(!s||s<0)return toast('Введите сумму');
+  const id=uid();S.pays[id]={t,ref,sum:s,date:$('pdt').value||today,note:$('pn').value.trim()};if(f)S.pays[id].for=$('pdt').value||f;save('pay/'+id);toast(t==='w'?'Выплата записана':'Оплата записана');renderSheet()};
 ACT.payDel=({id})=>{delete S.pays[id];save('pay/'+id);renderSheet()};
 SHEETS.objPay=({id})=>{const ob=S.objs[id];if(!ob)return null;
   return head(ob.name,'Объект · '+PL(ob.place).name)+
@@ -974,11 +984,20 @@ ACT.demo=()=>{
 };
 
 // ---------- события ----------
+// Переключатели: подсветка плавно переезжает на выбранную кнопку
+function segMark(el){
+  const seg=el.closest('.seg');if(!seg||el.classList.contains('on'))return null;const on=seg.querySelector('.on');if(!on)return null;
+  const root=el.closest('#sheet')?$('sheet'):view;return{root,i:[...root.querySelectorAll('.seg')].indexOf(seg),x:on.getBoundingClientRect().left};
+}
+function segSlide(m){
+  if(!m)return;const seg=m.root.querySelectorAll('.seg')[m.i],on=seg&&seg.querySelector('.on');if(!on||!on.animate)return;
+  const dx=m.x-on.getBoundingClientRect().left;if(dx)on.animate([{transform:'translateX('+dx+'px)'},{transform:'none'}],{duration:280,easing:EASE});
+}
 function tap(t){
   if(t.id==='bg'){closeSheet();return true}
   const el=t.closest('[data-act]');if(!el||el.disabled)return false;
   const inSheet=!!el.closest('#sheet'),f=ACT[el.dataset.act];
-  if(f){rendered=false;f(el.dataset,el);if(!inSheet&&!ui.sheet&&!rendered)render()}
+  if(f){const sg=segMark(el);rendered=false;f(el.dataset,el);if(!inSheet&&!ui.sheet&&!rendered)render();segSlide(sg)}
   return !!f;
 }
 document.addEventListener('click',e=>{if(Date.now()-lastTap>600)tap(e.target)});
@@ -990,24 +1009,29 @@ function hex2hsl(x){const n=parseInt(String(x||'#888888').slice(1),16),r=(n>>16)
 const HUES=[0,18,35,50,75,130,165,190,212,245,280,325],SHADES=[[92,80],[90,68],[84,57],[80,46],[72,35]],GRAYS=[96,88,80,72,64,56,48,40,32,24,16,9];
 const trackS=p=>`linear-gradient(to right,hsl(${p.h} 0% ${p.l}%),hsl(${p.h} 100% ${p.l}%))`;
 const trackL=p=>`linear-gradient(to right,#000,hsl(${p.h} ${p.s}% 50%),#fff)`;
+const pickHex=q=>q.hex||hsl2hex(q.h,q.s,q.l);
 SHEETS.color=()=>{
-  const p=ui.pick;if(!p)return null;const cur=hsl2hex(p.h,p.s,p.l);
+  const p=ui.pick;if(!p)return null;const cur=pickHex(p);
   const cell=(h,s,l)=>`<button class="${hsl2hex(h,s,l)===cur?'on':''}" style="background:hsl(${h} ${s}% ${l}%)" data-act="pickSet" data-h="${h}" data-s="${s}" data-l="${l}" aria-label="Цвет"></button>`;
   return`<div class="sh"><div><b>Свой цвет</b><small>Нажмите на цвет или подвиньте ползунки</small></div><button class="btn sm" data-act="pickBack">Отмена</button></div>
-    <div class="cprev" id="cprev" style="background:${cur};color:${p.l>58?'#111':'#fff'}">${cur}</div>
+    <div class="cprev" id="cprev" style="background:${cur};height:52px"></div>
+    <div class="row" style="margin-bottom:12px"><span class="lbl" style="margin:0;flex:none">Код цвета</span><input id="chex" data-in="hex" value="${cur}" maxlength="7" autocapitalize="off" autocorrect="off" spellcheck="false" style="text-transform:uppercase;font-variant-numeric:tabular-nums;letter-spacing:.04em" aria-label="Код цвета"></div>
     <div class="cgrid">${SHADES.map(([s,l])=>HUES.map(h=>cell(h,s,l)).join('')).join('')}${GRAYS.map(l=>cell(0,0,l)).join('')}</div>
-    <label class="lbl">Оттенок</label><input type="range" class="cr hue" min="0" max="359" data-in="pk" data-k="h" value="${p.h}">
+    <label class="lbl">Оттенок</label><input type="range" class="cr hue" id="crh" min="0" max="359" data-in="pk" data-k="h" value="${p.h}">
     <label class="lbl">Насыщенность</label><input type="range" class="cr" id="crs" min="0" max="100" data-in="pk" data-k="s" value="${p.s}" style="background:${trackS(p)}">
     <label class="lbl">Яркость</label><input type="range" class="cr" id="crl" min="6" max="94" data-in="pk" data-k="l" value="${p.l}" style="background:${trackL(p)}">
     <button class="btn pri full" style="margin-top:6px" data-act="pickOk">Выбрать этот цвет</button>`;
 };
-IN.pk=el=>{const p=ui.pick;p[el.dataset.k]=+el.value;const c=hsl2hex(p.h,p.s,p.l),v=$('cprev');
-  v.style.background=c;v.style.color=p.l>58?'#111':'#fff';v.textContent=c;$('crs').style.background=trackS(p);$('crl').style.background=trackL(p);
-  document.querySelectorAll('.cgrid .on').forEach(b=>b.classList.remove('on'))};
-ACT.pick=({ch,id,v})=>{const[h,s,l]=hex2hsl(v);ui.pick={ch,id,h,s,l,back:ui.sheet?{name:ui.sheet.name,args:ui.sheet.args}:null};openSheet('color')};
-ACT.pickSet=({h,s,l})=>{Object.assign(ui.pick,{h:+h,s:+s,l:+l});renderSheet()};
+function pickLive(skipHex){const p=ui.pick,c=pickHex(p);$('cprev').style.background=c;if(!skipHex)$('chex').value=c;$('crs').style.background=trackS(p);$('crl').style.background=trackL(p);
+  document.querySelectorAll('.cgrid .on').forEach(b=>b.classList.remove('on'))}
+IN.pk=el=>{const p=ui.pick;p[el.dataset.k]=+el.value;p.hex=null;pickLive()};
+// Код цвета можно вписать руками: #RGB или #RRGGBB, решётка необязательна
+IN.hex=el=>{let v=el.value.trim().replace(/^#?/,'#');if(/^#[0-9a-f]{3}$/i.test(v))v='#'+v.slice(1).replace(/./g,'$&$&');if(!/^#[0-9a-f]{6}$/i.test(v))return;
+  v=v.toLowerCase();const p=ui.pick,[h,s,l]=hex2hsl(v);Object.assign(p,{h,s,l,hex:v});pickLive(true);$('crh').value=h;$('crs').value=s;$('crl').value=l};
+ACT.pick=({ch,id,v})=>{const[h,s,l]=hex2hsl(v);ui.pick={ch,id,h,s,l,hex:/^#[0-9a-f]{6}$/i.test(v||'')?v.toLowerCase():null,back:ui.sheet?{name:ui.sheet.name,args:ui.sheet.args}:null};openSheet('color')};
+ACT.pickSet=({h,s,l})=>{Object.assign(ui.pick,{h:+h,s:+s,l:+l,hex:null});renderSheet()};
 ACT.pickBack=()=>{const b=ui.pick.back;ui.pick=null;if(b)openSheet(b.name,b.args);else closeSheet()};
-ACT.pickOk=()=>{const p=ui.pick,c=hsl2hex(p.h,p.s,p.l);ui.pick=null;
+ACT.pickOk=()=>{const p=ui.pick,c=pickHex(p);ui.pick=null;
   if(p.ch.indexOf('ic:')===0){IC[p.ch.slice(3)]=c;saveIcon();closeSheet();render();return}
   if(p.ch==='draft'){ui.draft.color=c;openSheet(p.back.name,p.back.args);return}
   if(p.ch==='place')PL(p.id).color=c;else S.cfg.settings[p.ch==='me'?'meColor':'accent']=c;
