@@ -244,6 +244,8 @@ input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-wi
 .seg button{position:relative;z-index:1}
 .segpill{position:absolute;top:3px;bottom:3px;border-radius:9px;background:var(--accent);z-index:0;pointer-events:none}
 .seg button.sliding{background:transparent}
+/* на экране «Домой» высота «100%» у iPhone короче экрана, и под нижним меню остаётся пустота; «100vh» занимает экран целиком */
+.app,.app body{height:100vh}
 /* анимации */
 #view{overflow-x:hidden}
 .btn,.chip,.plus,.ico,.seg button,.week button,#tabs button,.x,.pick,.sw button,.gear{transition:transform .12s ease,background-color .2s,border-color .2s,color .2s,opacity .2s}
@@ -815,6 +817,7 @@ function ledger(){
     if(k.rev)at(p,pid).due+=k.rev;
     for(const x in P.crew){const v=payOf(P,x);if(v)at(w,x).due+=v}}}
   for(const id in S.pays){const y=S.pays[id];at(y.t==='w'?w:p,y.ref).got+=+y.sum||0}
+  for(const pid in p){const ds=placeDays(pid);p[pid].rest=ds.rest;p[pid].extra=ds.extra}
   return{w,p};
 }
 // Почасовая работа на месте по дням: сколько начислено за день и сколько из этого уже оплачено.
@@ -823,19 +826,20 @@ function placeDays(pid){
   const ds=[];for(const d in S.days){if(d>today)continue;const P=S.days[d].p[pid];if(!P)continue;const r=placeCalc(P).rev;if(r)ds.push({d,due:r,got:0})}
   ds.sort((a,b)=>a.d<b.d?-1:1);let pool=0;
   for(const id in S.pays){const y=S.pays[id];if(y.t!=='p'||y.ref!==pid)continue;const x=y.for&&ds.find(k=>k.d===y.for);if(x)x.got+=+y.sum||0;else pool+=+y.sum||0}
-  ds.forEach(x=>{if(x.got>x.due){pool+=x.got-x.due;x.got=x.due}});
-  ds.forEach(x=>{const use=Math.min(x.due-x.got,pool);x.got+=use;pool-=use});
+  ds.forEach(x=>{const use=Math.max(0,Math.min(x.due-x.got,pool));x.got+=use;pool-=use});
+  // Переплата за конкретный день остаётся доп. прибылью и на другие дни не переносится
+  ds.rest=ds.reduce((a,x)=>a+Math.max(0,x.due-x.got),0);ds.extra=pool+ds.reduce((a,x)=>a+Math.max(0,x.got-x.due),0);
   return ds;
 }
 const dayRows=pid=>placeDays(pid).filter(x=>x.due-x.got>.5).map(x=>`<div class="top" style="padding-left:15px"><span class="sp"><b style="font-size:14px">${WD[pd(x.d).getDay()]}, ${dLong(x.d)}</b><small class="num">начислено ${fmt(x.due)}${x.got?' · получено '+fmt(x.got):''}</small></span><b class="num">${rub(x.due-x.got)}</b><button class="btn sm" data-act="pay" data-t="p" data-ref="${pid}" data-for="${x.d}">Получил</button></div>`).join('');
 const objBal=ob=>{const r=(+ob.price||0)-(+ob.received||0);return ob.price==null?'<span class="mute">цена не указана</span>':r>0?`<b class="num">${rub(r)}</b>`:r<0?`<span class="num mute">переплата ${rub(-r)}</span>`:'<span class="good">оплачен</span>'};
 const balHtml=(b,over)=>b>0?`<b class="num">${rub(b)}</b>`:b<0?`<span class="num ${over==='переплата'?'mute':'good'}">${over} ${over==='переплата'?'':'+'}${rub(-b)}</span>`:'<span class="good">расчёт</span>';
 VIEWS.pays=()=>{
-  const L=ledger(),t=ui.pt,sum=m=>Object.values(m).reduce((s,x)=>s+Math.max(0,x.due-x.got),0);
+  const L=ledger(),t=ui.pt,sum=m=>Object.values(m).reduce((s,x)=>s+(x.rest!=null?x.rest:Math.max(0,x.due-x.got)),0);
   const objs=Object.keys(S.objs),oDue=objs.reduce((s,id)=>s+Math.max(0,(+S.objs[id].price||0)-(+S.objs[id].received||0)),0);
   let h=`<h2>Выплаты</h2><div class="kpis k2"><div class="kpi"><span>Нужно выплатить ребятам</span><b class="num">${rub(sum(L.w))}</b></div><div class="kpi"><span>Нужно получить</span><b class="num">${rub(sum(L.p)+oDue)}</b></div></div>
     <div class="seg"><button class="${t==='w'?'on':''}" data-act="ptab" data-t="w">Выплатить</button><button class="${t==='p'?'on':''}" data-act="ptab" data-t="p">Получить</button></div>`;
-  const row=(kind,id,x,m,a,b,btn,over)=>`<div class="top"><span class="bar" style="background:${x.color}"></span><button class="sp" style="text-align:left" data-act="pay" data-t="${kind}" data-ref="${id}"><b>${esc(x.name)}${x.archived?' <span class="tag">удалён</span>':''}</b><small class="num">${a} ${fmt(m.due)} · ${b} ${fmt(m.got)}</small></button><span style="text-align:right">${balHtml(m.due-m.got,over)}</span><button class="btn sm" data-act="pay" data-t="${kind}" data-ref="${id}">${btn}</button></div>`;
+  const row=(kind,id,x,m,a,b,btn,over)=>`<div class="top"><span class="bar" style="background:${x.color}"></span><button class="sp" style="text-align:left" data-act="pay" data-t="${kind}" data-ref="${id}"><b>${esc(x.name)}${x.archived?' <span class="tag">удалён</span>':''}</b><small class="num">${a} ${fmt(m.due)} · ${b} ${fmt(m.got)}${m.extra>0&&m.rest>0?' · доп. прибыль +'+fmt(m.extra):''}</small></button><span style="text-align:right">${balHtml(m.rest!=null?(m.rest>0?m.rest:-m.extra):m.due-m.got,over)}</span><button class="btn sm" data-act="pay" data-t="${kind}" data-ref="${id}">${btn}</button></div>`;
   if(t==='w'){const ids=Object.keys(L.w).sort((a,b)=>(L.w[b].due-L.w[b].got)-(L.w[a].due-L.w[a].got));
     h+=`<div class="card">${ids.map(id=>row('w',id,W(id),L.w[id],'заработал','выплачено','Выплатить','переплата')).join('')||'<div class="mute">Пока некому платить: отработанных смен нет.</div>'}</div>
       <div class="mute" style="font-size:12.5px">Считаются смены до сегодняшнего дня включительно.</div>`}
@@ -846,10 +850,10 @@ VIEWS.pays=()=>{
 };
 ACT.ptab=({t})=>{ui.pt=t;render('soft')};
 SHEETS.pay=({t,ref,f})=>{
-  const L=ledger(),dy=f&&placeDays(ref).find(k=>k.d===f),m=dy||(t==='w'?L.w:L.p)[ref]||{due:0,got:0},bal=m.due-m.got,x=t==='w'?W(ref):PL(ref);
+  const L=ledger(),dy=f&&placeDays(ref).find(k=>k.d===f),m=dy||(t==='w'?L.w:L.p)[ref]||{due:0,got:0},bal=!dy&&m.rest!=null?m.rest:m.due-m.got,x=t==='w'?W(ref):PL(ref);
   const hist=Object.keys(S.pays).filter(id=>S.pays[id].t===t&&S.pays[id].ref===ref).sort((a,b)=>S.pays[a].date<S.pays[b].date?1:-1);
   return head(x.name,t==='w'?'Выплата работнику':f?'Оплата от заказчика за '+WD[pd(f).getDay()]+', '+dLong(f):'Оплата от заказчика, почасовая')+
-    `<div class="box" style="margin-top:0"><div><span>${t==='w'?'Заработал':'Начислено'}</span><span class="num">${rub(m.due)}</span></div><div><span>${t==='w'?'Выплачено':'Получено'}</span><span class="num">${rub(m.got)}</span></div><div class="big"><span>${t==='w'?'Осталось выплатить':'Осталось получить'}</span><span class="num">${rub(bal)}</span></div></div>
+    `<div class="box" style="margin-top:0"><div><span>${t==='w'?'Заработал':'Начислено'}</span><span class="num">${rub(m.due)}</span></div><div><span>${t==='w'?'Выплачено':'Получено'}</span><span class="num">${rub(m.got)}</span></div><div class="big"><span>${t==='w'?'Осталось выплатить':'Осталось получить'}</span><span class="num">${bal<0&&t==='p'?'доп. прибыль +'+rub(-bal):rub(bal)}</span></div></div>
     <div class="two" style="margin-top:12px"><div><label class="lbl">Сумма, ₽</label><input id="ps" inputmode="numeric" value="${bal>0?Math.round(bal):''}"></div><div><label class="lbl">${f?'За какой день':'Дата'}</label><input id="pdt" type="date" value="${f||today}"></div></div>
     <div class="fld"><label>Заметка</label><input id="pn" placeholder="Например, наличными"></div>
     <button class="btn pri full" data-act="payAdd" data-t="${t}" data-ref="${ref}" data-for="${f||''}">${t==='w'?'Записать выплату':'Записать оплату'}</button>
@@ -857,7 +861,7 @@ SHEETS.pay=({t,ref,f})=>{
 };
 ACT.pay=({t,ref,for:f})=>openSheet('pay',{t,ref,f:f||''});
 ACT.payAdd=({t,ref,for:f})=>{const s=num($('ps').value);if(!s||s<0)return toast('Введите сумму');
-  const id=uid();S.pays[id]={t,ref,sum:s,date:$('pdt').value||today,note:$('pn').value.trim()};if(f)S.pays[id].for=$('pdt').value||f;save('pay/'+id);toast(t==='w'?'Выплата записана':'Оплата записана');renderSheet()};
+  const id=uid();S.pays[id]={t,ref,sum:s,date:$('pdt').value||today,note:$('pn').value.trim()};if(f)S.pays[id].for=$('pdt').value||f;save('pay/'+id);toast(t==='w'?'Выплата записана':'Оплата записана');closeSheet()};
 ACT.payDel=({id})=>{delete S.pays[id];save('pay/'+id);renderSheet()};
 SHEETS.objPay=({id})=>{const ob=S.objs[id];if(!ob)return null;
   return head(ob.name,'Объект · '+PL(ob.place).name)+
@@ -880,7 +884,7 @@ VIEWS.stats=()=>{
     for(const w in r.w){const x=wk[w]=wk[w]||{n:0,h:0,pay:0};x.n++;x.h+=r.w[w].h;x.pay+=r.w[w].pay}
     for(const pid in S.days[d].p)(S.days[d].p[pid].objs||[]).forEach(o=>used.add(o))}
   const LP=ledger().p;
-  for(const pid in LP){const sur=LP[pid].got-LP[pid].due;if(sur<=0)continue;
+  for(const pid in LP){const sur=LP[pid].extra||0;if(sur<=0)continue;
     const dt=Object.values(S.pays).filter(y=>y.t==='p'&&y.ref===pid).map(y=>y.date).sort().pop(),i=dt?P.idx(dt):-1;
     if(i>=0){B[i].rev+=sur;B[i].pl[pid]=(B[i].pl[pid]||0)+sur;rev+=sur}}
   const sel=ui.st.i<P.n?ui.st.i:-1,c=ui.st.c;
