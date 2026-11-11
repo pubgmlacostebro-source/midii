@@ -243,7 +243,7 @@ input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-wi
 .seg{position:relative}
 .seg button{position:relative;z-index:1}
 .segpill{position:absolute;top:3px;bottom:3px;border-radius:9px;background:var(--accent);z-index:0;pointer-events:none}
-.seg button.sliding{background:transparent}
+.seg button.sliding{background:transparent;transition:none}
 /* на экране «Домой» высота «100%» у iPhone короче экрана, и под нижним меню остаётся пустота; «100vh» занимает экран целиком */
 .app,.app body{height:100vh}
 /* анимации */
@@ -518,14 +518,14 @@ function openSheet(name,args){
   bg.classList.remove('out');ui.sheet={name,args:args||{}};renderSheet();sh.scrollTop=0;
   if(!ui.sheet||!sh.animate)return;
   const ease='cubic-bezier(.22,.8,.3,1)';
-  if(fresh){sh.animate([{transform:'translateY(100%)'},{transform:'none'}],{duration:420,easing:ease});bg.animate([{opacity:0},{opacity:1}],{duration:300})}
+  if(fresh){sh.animate([{transform:'translateY(100%)'},{transform:'none'}],{duration:420,easing:ease});bg.animate([{backgroundColor:'rgba(0,0,0,0)'},{backgroundColor:getComputedStyle(bg).backgroundColor}],{duration:300})}
   else if(was!==name)sh.animate([{transform:'translateY(100%)'},{transform:'none'}],{duration:380,easing:ease});
 }
 function closeSheet(){
   ui.sheet=null;ui.draft=null;rendered=true;const bg=$('bg');
   const sh=$('sheet');stopClose();
-  if(sh.animate&&bg.classList.contains('show'))closeA=[sh.animate([{transform:'none'},{transform:'translateY(45%)'}],{duration:220,easing:'ease-in',fill:'forwards'}),bg.animate([{opacity:1},{opacity:0}],{duration:220,fill:'forwards'})];
-  bg.classList.add('out');closeT=setTimeout(()=>{bg.classList.remove('show','out');stopClose()},220);
+  if(sh.animate&&bg.classList.contains('show'))closeA=[sh.animate([{transform:'none'},{transform:'translateY(100%)'}],{duration:260,easing:'ease-in',fill:'forwards'}),bg.animate([{backgroundColor:getComputedStyle(bg).backgroundColor},{backgroundColor:'rgba(0,0,0,0)'}],{duration:260,fill:'forwards'})];
+  bg.classList.add('out');closeT=setTimeout(()=>{bg.classList.remove('show','out');stopClose()},260);
   view.className='wrap';view.innerHTML=VIEWS[ui.tab]();
 }
 function renderSheet(){
