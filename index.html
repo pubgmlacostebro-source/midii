@@ -1007,7 +1007,7 @@ function segSlide(m){
     const pill=document.createElement('div');pill.className='segpill';pill.style.left=on.offsetLeft+'px';pill.style.width=on.offsetWidth+'px';seg.appendChild(pill);on.classList.add('sliding');
     const o={duration:320,easing:'cubic-bezier(.4,0,.2,1)'};
     on.animate([{color:mute},{color:ink}],o);old.animate([{color:ink},{color:mute}],o);
-    const a=pill.animate([{transform:'translateX('+(old.offsetLeft-on.offsetLeft)+'px)',width:old.offsetWidth+'px'},{transform:'none',width:on.offsetWidth+'px'}],o),end=()=>{pill.remove();on.classList.remove('sliding')};
+    const a=pill.animate([{transform:'translateX('+(old.offsetLeft-on.offsetLeft)+'px)',width:old.offsetWidth+'px'},{transform:'none',width:on.offsetWidth+'px'}],o),end=()=>{on.style.transition='none';on.classList.remove('sliding');void on.offsetWidth;pill.remove();requestAnimationFrame(()=>requestAnimationFrame(()=>{on.style.transition=''}))};
     a.onfinish=end;a.oncancel=end;return}
   on.animate([{backgroundColor:'rgba(0,0,0,0)',color:mute},{backgroundColor:acc,color:ink}],opt);
   old.animate([{backgroundColor:acc,color:ink},{backgroundColor:'rgba(0,0,0,0)',color:mute}],opt);
