@@ -38,7 +38,7 @@ textarea{resize:vertical;min-height:44px}
 #status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute)}
 .gear{width:36px;height:36px;display:grid;place-items:center;color:var(--mute);border-radius:10px;margin-right:-8px}
 .gear.on{color:var(--accent)}
-.gear svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.gear svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.700;stroke-linecap:round;stroke-linejoin:round}
 .kpis.k2{grid-template-columns:1fr 1fr}
 .top .btn{flex:none}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--mute);flex:none}
@@ -221,6 +221,26 @@ h3{font-size:12px;margin:18px 0 8px;color:var(--mute);text-transform:uppercase;l
 .icons button:active{transform:scale(.92)}
 .icons button.on{border-color:var(--text)}
 .icons img{width:100%;height:100%;display:block}
+:root{color-scheme:dark}
+:root[data-theme=light]{color-scheme:light;--bg:#f3f4f6;--card:#ffffff;--card2:#eceef2;--line:#d6dae2;--text:#15171c;--text2:#3d424d;--mute:#717783;--rev:#c5cbd6;--bad:#d03b3b}
+[data-theme=light] .good,[data-theme=light] .adj.pos{color:#0c8a45}
+[data-theme=light] .tag{background:#e3e6ec}
+[data-theme=light] .tag.ok{background:#d9f3e3;color:#0c8a45}
+[data-theme=light] .col.on{background:rgba(0,0,0,.06)}
+[data-theme=light] #sbar{background:#15171c}
+[data-theme=light] #bg{background:rgba(20,22,28,.45)}
+[data-theme=light] #top.sc{box-shadow:0 6px 18px rgba(0,0,0,.12)}
+[data-theme=light] .tgl{color:#1583c4}
+#toast{color:#fff}
+/* на экране «Домой» страница должна занимать весь экран, иначе под нижним меню остаётся пустая полоса */
+.app,.app body{height:100vh}
+.icons button{font-weight:800;font-size:22px;display:grid;place-items:center}
+.icprev{width:76px;height:76px;border-radius:18px;flex:none;border:1px solid var(--line)}
+.icset{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.icc{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 12px 0 8px;border-radius:10px;background:var(--card2);border:1px solid var(--line);font-size:14px;font-weight:600}
+.icc i{width:22px;height:22px;border-radius:50%;border:1px solid var(--line)}
+.tmline{display:flex;align-items:center;gap:6px;margin:-3px 0 5px 13px;padding:2px 0;font-size:12.500px;color:var(--mute)}
+.tmline .ic{width:13px;height:13px}
 /* анимации */
 #view{overflow-x:hidden}
 .btn,.chip,.plus,.ico,.seg button,.week button,#tabs button,.x,.pick,.sw button,.gear{transition:transform .12s ease,background-color .2s,border-color .2s,color .2s,opacity .2s}
@@ -260,7 +280,7 @@ h3{font-size:12px;margin:18px 0 8px;color:var(--mute);text-transform:uppercase;l
 </head>
 <body>
 <div id="sbar"></div>
-<header id="top"><div class="wrap"><h1>Ми<b>дии</b></h1><div class="row"><div id="status"></div><button class="gear" data-act="tab" data-tab="settings" aria-label="Настройки"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.500v3M12 18.500v3M2.500 12h3M18.500 12h3M5.300 5.300l2.100 2.100M16.600 16.600l2.100 2.100M5.300 18.700l2.100-2.100M16.600 7.400l2.100-2.100"/></svg></button></div></div></header>
+<header id="top"><div class="wrap"><h1>Ми<b>дии</b></h1><div class="row"><div id="status"></div><button class="gear" data-act="tab" data-tab="settings" aria-label="Настройки"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button></div></div></header>
 <main id="view" class="wrap"></main>
 <nav id="tabs"><div class="wrap">
   <button data-act="tab" data-tab="cal"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Календарь</button>
@@ -316,6 +336,12 @@ const IC_OK='<svg class="ic" viewBox="0 0 24 24"><path d="M5 12.500l4.500 4.500L
 const IC_UNDO='<svg class="ic" viewBox="0 0 24 24"><path d="M9 6L4 11l5 5M4 11h10a5 5 0 010 10h-3"/></svg>';
 // Палитра: готовые цвета и кружок «+» — системный выбор любого цвета
 const swatches=(list,cur,act,extra,ch)=>`<div class="sw">${(list.includes(cur)?list:list.concat(cur)).map(c=>`<button class="${cur===c?'on':''}" style="background:${c}" data-act="${act}" ${extra} data-v="${c}" aria-label="Цвет"></button>`).join('')}<button class="swc" data-act="pick" data-ch="${ch}" ${extra} data-v="${cur}" aria-label="Свой цвет"><span><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></div>`;
+const IC_CLOCK='<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+// Часы по времени: от начала до конца смены минус неоплачиваемый обед. Смена через полночь считается до следующего дня
+const tmMin=v=>{const m=/^(\d{1,2}):(\d{2})$/.exec(v||'');return m?+m[1]*60+ +m[2]:null};
+function tmHours(t1,t2,l){const a=tmMin(t1),b=tmMin(t2);if(a==null||b==null)return null;let d=b-a;if(d<0)d+=1440;return Math.max(0,Math.round((d-(+l||0))/60*100)/100)}
+const fmtH=h=>String(Math.round(h*100)/100).replace('.',',');
+const tmText=c=>c.t1&&c.t2?c.t1+' – '+c.t2+(c.l?' · обед '+c.l+' мин':''):'Посчитать часы по времени';
 const tgName=v=>String(v||'').trim().replace(/^(https?:\/\/)?(t\.me\/|telegram\.me\/)/i,'').replace(/^@/,'').replace(/[^\w]/g,'');
 // Из ника получается ссылка на t.me — телефон открывает по ней чат в приложении Telegram.
 // Адрес собран из кусочков нарочно: Apps Script принимает два слеша подряд за комментарий и обрезает строку
@@ -381,9 +407,26 @@ const gas=(fn,...a)=>GAS?new Promise((res,rej)=>google.script.run.withSuccessHan
   :fetch(API,{method:'POST',body:JSON.stringify({key:KEY,fn,args:a})}).then(r=>r.json()).then(j=>{if(j.error)throw new Error(j.error);return j.result});
 if(navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches))document.documentElement.classList.add('app');
 // Иконка для экрана «Домой»: телефон берёт ту, что выбрана в момент добавления
-const ICONS=['dark','amber','blue','green','violet','light'];
-const curIcon=()=>{try{return localStorage.getItem('midii-icon')||ICONS[0]}catch(e){return ICONS[0]}};
-const applyIcon=()=>{const l=document.getElementById('ati');if(l&&!GAS)l.href='icon-'+curIcon()+'.png'};
+// Тема оформления хранится на устройстве
+let themeMem=null;
+const THEME=()=>{if(themeMem)return themeMem;try{return localStorage.getItem('midii-theme')||'dark'}catch(e){return'dark'}};
+function applyTheme(){const t=THEME();document.documentElement.dataset.theme=t;const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light'?'#f3f4f6':'#0d0e11'}
+applyTheme();
+// Иконка для экрана «Домой» рисуется прямо в браузере по настройкам: два цвета фона, знак, его цвет, подчёркивание
+const IC_PRESETS=[['#1b1e25','#0d0e11','#f5a524'],['#ffbe4d','#f08a00','#1a1204'],['#4f9cf5','#2563c9','#ffffff'],['#34c98e','#0f8a5f','#ffffff'],['#a595f5','#6a4fd6','#ffffff'],['#ffffff','#e6e4de','#17191e']];
+const icDef=()=>({c1:IC_PRESETS[0][0],c2:IC_PRESETS[0][1],fg:IC_PRESETS[0][2],t:'М',line:true,custom:false});
+let IC=icDef();try{const st=JSON.parse(localStorage.getItem('midii-iconcfg'));if(st&&st.c1)IC=Object.assign(icDef(),st)}catch(e){}
+function drawIcon(c,size){
+  const cv=document.createElement('canvas');cv.width=cv.height=size;const g=cv.getContext('2d'),gr=g.createLinearGradient(0,0,size,size);
+  gr.addColorStop(0,c.c1);gr.addColorStop(1,c.c2);g.fillStyle=gr;g.fillRect(0,0,size,size);
+  const t=[...(c.t||'')].slice(0,2).join('');g.fillStyle=c.fg;g.textAlign='center';g.textBaseline='middle';
+  g.font='bold '+Math.round(size*([...t].length>1?.4:.52))+'px -apple-system,"Segoe UI",Roboto,Arial,sans-serif';
+  g.fillText(t,size/2,size*(c.line?.46:.53));
+  if(c.line)g.fillRect(size*.3,size*.76,size*.4,size*.045);
+  return cv.toDataURL('image/png');
+}
+const applyIcon=()=>{const l=document.getElementById('ati');if(!l||GAS)return;try{l.href=IC.custom?drawIcon(IC,180):'icon-dark.png'}catch(e){}};
+const saveIcon=()=>{IC.custom=true;try{localStorage.setItem('midii-iconcfg',JSON.stringify(IC))}catch(e){}applyIcon()};
 applyIcon();
 // Если в уже открытой странице меняется код в адресе, перечитываем его
 window.addEventListener('hashchange',()=>{if(!GAS&&location.hash.indexOf('k=')>=0)location.reload()});
@@ -589,7 +632,8 @@ SHEETS.calc=({pid})=>{
     return`<div class="crow"><span class="bar" style="background:${x.color}"></span><span class="nm nmt"><span>${esc(x.name)}</span>${tgBtn(x)}</span>
       <label class="mini"><input inputmode="decimal" data-in="h" data-pid="${pid}" data-w="${w}" value="${c.h==null?'':c.h}" aria-label="Часы">ч</label>
       ${w==='me'?`<span class="payv num" id="pay-me">${mePay(P)}</span>`:P.mode==='m'?`<label class="mini wide"><input inputmode="numeric" data-in="pay" data-pid="${pid}" data-w="${w}" value="${c.pay==null?'':c.pay}" aria-label="Получил">₽</label>`:`<span class="payv num" id="pay-${w}">${rub(payOf(P,w))}</span>`}
-      <button class="x" data-act="rmCrew" data-pid="${pid}" data-w="${w}" aria-label="Убрать">✕</button></div>`};
+      <button class="x" data-act="rmCrew" data-pid="${pid}" data-w="${w}" aria-label="Убрать">✕</button></div>
+      <button class="tmline" data-act="tm" data-pid="${pid}" data-w="${w}">${IC_CLOCK}<span>${tmText(c)}</span></button>`};
   let h=head(PL(pid).name,WDL[pd(ui.date).getDay()]+', '+dLong(ui.date))+
     `<label class="lbl">Как считать зарплату ребятам</label><div class="seg"><button class="${P.mode!=='m'?'on':''}" data-act="mode" data-pid="${pid}" data-m="h">По часам</button><button class="${P.mode==='m'?'on':''}" data-act="mode" data-pid="${pid}" data-m="m">Ставлю сам</button></div>`;
   (P.objs||[]).forEach(o=>{const ob=S.objs[o]||{name:'(объект удалён)'};
@@ -620,7 +664,24 @@ ACT.rmObjDay=({pid,o})=>{const P=S.days[ui.date].p[pid];P.objs=P.objs.filter(x=>
   for(const w in P.crew)if(P.crew[w].o===o)delete P.crew[w].o;save('days/'+ui.date);renderSheet()};
 ACT.rmPlaceDay=({pid})=>ask('Убрать «'+PL(pid).name+'» из этого дня вместе с людьми и часами?','Убрать',()=>{delete S.days[ui.date].p[pid];save('days/'+ui.date)});
 const dayIn=(el,fn)=>{const P=S.days[ui.date].p[el.dataset.pid];fn(P);save('days/'+ui.date);LIVE.calc(el.dataset)};
-IN.h=el=>dayIn(el,P=>{P.crew[el.dataset.w].h=num(el.value)});
+IN.h=el=>dayIn(el,P=>{const c=P.crew[el.dataset.w];c.h=num(el.value);delete c.t1;delete c.t2;delete c.l});
+SHEETS.tm=()=>{
+  const t=ui.tm;if(!t)return null;const h=tmHours(t.t1,t.t2,t.l);
+  return`<div class="sh"><div><b>Часы по времени</b><small>${esc(W(t.w).name)} · ${dLong(ui.date)}</small></div><button class="btn sm" data-act="tmBack">Отмена</button></div>
+    <div class="two"><div><label class="lbl">Начал</label><input type="time" data-in="tmf" data-k="t1" value="${t.t1}"></div><div><label class="lbl">Закончил</label><input type="time" data-in="tmf" data-k="t2" value="${t.t2}"></div></div>
+    <div class="fld"><label>Обед, минут — не оплачивается</label><div class="chips">${[0,30,45,60].map(m=>`<button class="chip plain ${+t.l===m?'on':''}" data-act="tmL" data-v="${m}">${m?m+' мин':'без обеда'}</button>`).join('')}<label class="mini wide"><input inputmode="numeric" data-in="tmf" data-k="l" value="${t.l}" aria-label="Обед, минут">мин</label></div></div>
+    <div class="box"><div class="big" style="border:0;margin:0;padding:0"><span>К оплате</span><span class="num" id="tmres">${h==null?'—':fmtH(h)+' ч'}</span></div></div>
+    <button class="btn pri full" style="margin-top:14px" data-act="tmOk">Применить</button>
+    <button class="btn full" style="margin-top:8px" data-act="tmOk" data-all="1">Применить ко всем на этом месте</button>`;
+};
+IN.tmf=el=>{const t=ui.tm,k=el.dataset.k;t[k]=k==='l'?(num(el.value)||0):el.value;const h=tmHours(t.t1,t.t2,t.l);$('tmres').textContent=h==null?'—':fmtH(h)+' ч';
+  if(k==='l')document.querySelectorAll('#sheet [data-act=tmL]').forEach(b=>b.classList.toggle('on',+b.dataset.v===+t.l))};
+ACT.tm=({pid,w})=>{const c=S.days[ui.date].p[pid].crew[w],d=ui.tmLast||{t1:'09:00',t2:'18:00',l:60};ui.tm={pid,w,t1:c.t1||d.t1,t2:c.t2||d.t2,l:c.l!=null?c.l:d.l};openSheet('tm')};
+ACT.tmL=({v})=>{ui.tm.l=+v;renderSheet()};
+ACT.tmBack=()=>{const pid=ui.tm.pid;ui.tm=null;openSheet('calc',{pid})};
+ACT.tmOk=({all})=>{const t=ui.tm,h=tmHours(t.t1,t.t2,t.l);if(h==null)return toast('Укажите время начала и конца');
+  const P=S.days[ui.date].p[t.pid];(all?Object.keys(P.crew):[t.w]).forEach(w=>Object.assign(P.crew[w],{h,t1:t.t1,t2:t.t2,l:+t.l||0}));
+  ui.tmLast={t1:t.t1,t2:t.t2,l:+t.l||0};save('days/'+ui.date);ui.tm=null;openSheet('calc',{pid:t.pid})};
 IN.pay=el=>dayIn(el,P=>{P.crew[el.dataset.w].pay=num(el.value)});
 IN.rate=el=>dayIn(el,P=>{P[el.dataset.k]=num(el.value)});
 IN.bon=el=>dayIn(el,P=>{const v=num(el.value);P.crew[el.dataset.w].bon=v==null?null:Math.abs(v)});
@@ -854,7 +915,7 @@ VIEWS.settings=()=>{
     <div class="fld" style="margin-bottom:0"><label>Зарплата ребятам</label><div class="seg"><button class="${s.mode!=='m'?'on':''}" data-act="setMode" data-m="h">По часам</button><button class="${s.mode==='m'?'on':''}" data-act="setMode" data-m="m">Ставлю сам</button></div></div>
     <div class="fld" style="margin-bottom:0"><label>Ваш цвет</label>${swatches([ME.color].concat(WCOL),s.meColor||ME.color,'meColor','','me')}</div>
     <div class="mute" style="font-size:12.5px;margin-top:10px">Подставляются в новые дни. В каждом дне их можно поменять отдельно.</div></div>
-  <h3>Оформление</h3><div class="card"><label class="lbl">Цвет приложения</label>${swatches(ACCENTS,s.accent||ACCENTS[0],'accent','','accent')}${GAS?'':`<label class="lbl" style="margin-top:14px">Иконка на экране «Домой»</label><div class="icons">${ICONS.map(i=>`<button class="${curIcon()===i?'on':''}" data-act="icon" data-v="${i}" aria-label="Иконка"><img src="icon-${i}.png" alt=""></button>`).join('')}</div><div class="mute" style="font-size:12.500px;margin-top:8px">Телефон запоминает иконку в момент добавления на экран. Чтобы сменить её, выберите новую здесь, удалите старую иконку с экрана и добавьте приложение заново.</div>`}</div>
+  <h3>Оформление</h3><div class="card"><label class="lbl">Тема</label><div class="seg" style="margin-bottom:14px"><button class="${THEME()==='dark'?'on':''}" data-act="theme" data-v="dark">Тёмная</button><button class="${THEME()==='light'?'on':''}" data-act="theme" data-v="light">Светлая</button></div><label class="lbl">Цвет приложения</label>${swatches(ACCENTS,s.accent||ACCENTS[0],'accent','','accent')}${GAS?'':iconUI()}</div>
   <h3>Места</h3><div class="card">${S.cfg.places.map(p=>`<div class="lst"><button class="pdot" style="background:${p.color};width:26px;height:26px;border-radius:8px" data-act="plColor" data-id="${p.id}" aria-label="Цвет места"></button><input data-in="plName" data-id="${p.id}" value="${esc(p.name)}"><button class="x" data-act="plDel" data-id="${p.id}" aria-label="Удалить место">✕</button></div>`).join('')}
     <div class="row" style="margin-top:6px"><input id="npl" placeholder="Новое место"><button class="btn" data-act="plAdd">Добавить</button></div></div>
   <h3>Виды работ и умения</h3><div class="card"><div class="chips">${S.cfg.skills.map(k=>`<span class="chip plain">${esc(k)}<button class="x" style="width:22px;height:22px;margin-right:-6px" data-act="skDel" data-s="${esc(k)}" aria-label="Удалить">✕</button></span>`).join('')}</div>
@@ -874,7 +935,21 @@ ACT.skDel=({s})=>{S.cfg.skills=S.cfg.skills.filter(x=>x!==s);
   for(const id in S.objs){const ob=S.objs[id];if(typesOf(ob).includes(s)){ob.types=typesOf(ob).filter(x=>x!==s);delete ob.type;save('objects/'+id)}}
   save('config/main');render()};
 ACT.accent=({v})=>{S.cfg.settings.accent=v;save('config/main')};
-ACT.icon=({v})=>{try{localStorage.setItem('midii-icon',v)}catch(e){}applyIcon()};
+const iconUI=()=>`<label class="lbl" style="margin-top:16px">Иконка на экране «Домой»</label>
+    <div class="row" style="align-items:flex-start;gap:14px"><img class="icprev" src="${drawIcon(IC,180)}" alt="Так будет выглядеть иконка">
+      <div class="sp"><div class="mute" style="font-size:12.500px;margin-bottom:6px">Готовые варианты</div><div class="icons">${IC_PRESETS.map((q,i)=>`<button style="background:linear-gradient(135deg,${q[0]},${q[1]});color:${q[2]};width:44px;height:44px;border-radius:11px" data-act="icPreset" data-i="${i}" aria-label="Готовая иконка">М</button>`).join('')}</div></div></div>
+    <div class="icset">
+      <button class="icc" data-act="pick" data-ch="ic:c1" data-v="${IC.c1}"><i style="background:${IC.c1}"></i>Цвет фона</button>
+      <button class="icc" data-act="pick" data-ch="ic:c2" data-v="${IC.c2}"><i style="background:${IC.c2}"></i>Второй цвет</button>
+      <button class="icc" data-act="pick" data-ch="ic:fg" data-v="${IC.fg}"><i style="background:${IC.fg}"></i>Цвет знака</button>
+    </div>
+    <div class="row" style="margin-top:10px;flex-wrap:wrap"><input data-in="ict" value="${esc(IC.t)}" maxlength="4" placeholder="М" style="width:74px;text-align:center;font-weight:700" aria-label="Буква или знак"><button class="chip plain ${IC.line?'on':''}" data-act="icLine">Подчёркивание</button><button class="chip plain ${IC.c1===IC.c2?'on':''}" data-act="icFlat">Без градиента</button></div>
+    <div class="mute" style="font-size:12.500px;margin-top:10px">Фон плавно переходит от первого цвета ко второму. В поле слева можно вписать свою букву, две буквы или смайлик. Телефон запоминает иконку в момент добавления на экран: чтобы сменить её, настройте здесь, удалите старую иконку с экрана и добавьте приложение заново.</div>`;
+ACT.icPreset=({i})=>{const q=IC_PRESETS[+i];Object.assign(IC,{c1:q[0],c2:q[1],fg:q[2]});saveIcon()};
+ACT.icLine=()=>{IC.line=!IC.line;saveIcon()};
+ACT.icFlat=()=>{IC.c2=IC.c1;saveIcon()};
+IN.ict=el=>{IC.t=el.value;saveIcon();const im=document.querySelector('.icprev');if(im)im.src=drawIcon(IC,180)};
+ACT.theme=({v})=>{themeMem=v;try{localStorage.setItem('midii-theme',v)}catch(e){}applyTheme()};
 ACT.meColor=({v})=>{S.cfg.settings.meColor=v;save('config/main')};
 SHEETS.plColor=({id})=>head(PL(id).name,'Цвет места')+swatches(PCOL,PL(id).color,'plColorSet',`data-id="${id}"`,'place');
 ACT.plColor=({id})=>openSheet('plColor',{id});
@@ -933,6 +1008,7 @@ ACT.pick=({ch,id,v})=>{const[h,s,l]=hex2hsl(v);ui.pick={ch,id,h,s,l,back:ui.shee
 ACT.pickSet=({h,s,l})=>{Object.assign(ui.pick,{h:+h,s:+s,l:+l});renderSheet()};
 ACT.pickBack=()=>{const b=ui.pick.back;ui.pick=null;if(b)openSheet(b.name,b.args);else closeSheet()};
 ACT.pickOk=()=>{const p=ui.pick,c=hsl2hex(p.h,p.s,p.l);ui.pick=null;
+  if(p.ch.indexOf('ic:')===0){IC[p.ch.slice(3)]=c;saveIcon();closeSheet();render();return}
   if(p.ch==='draft'){ui.draft.color=c;openSheet(p.back.name,p.back.args);return}
   if(p.ch==='place')PL(p.id).color=c;else S.cfg.settings[p.ch==='me'?'meColor':'accent']=c;
   save('config/main');closeSheet();render()};
