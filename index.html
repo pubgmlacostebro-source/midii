@@ -385,6 +385,8 @@ const ICONS=['dark','amber','blue','green','violet','light'];
 const curIcon=()=>{try{return localStorage.getItem('midii-icon')||ICONS[0]}catch(e){return ICONS[0]}};
 const applyIcon=()=>{const l=document.getElementById('ati');if(l&&!GAS)l.href='icon-'+curIcon()+'.png'};
 applyIcon();
+// Если в уже открытой странице меняется код в адресе, перечитываем его
+window.addEventListener('hashchange',()=>{if(!GAS&&location.hash.indexOf('k=')>=0)location.reload()});
 const LOCAL='brigada-v1';
 const dirty=new Set();let flushT=null,pending=0,seq=0,lastRows='';
 function docOf(path){const i=path.indexOf('/'),k=path.slice(0,i),id=path.slice(i+1);return k==='config'?S.cfg:k==='days'?S.days[id]:k==='pay'?S.pays[id]:S.objs[id]}
