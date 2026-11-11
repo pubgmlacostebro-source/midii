@@ -519,7 +519,7 @@ function openSheet(name,args){
   if(!ui.sheet||!sh.animate)return;
   const ease='cubic-bezier(.22,.8,.3,1)';
   if(fresh){sh.animate([{transform:'translateY(100%)'},{transform:'none'}],{duration:420,easing:ease});bg.animate([{opacity:0},{opacity:1}],{duration:300})}
-  else if(was!==name)sh.animate([{transform:'translateY(45%)',opacity:.3},{transform:'none',opacity:1}],{duration:340,easing:ease});
+  else if(was!==name)sh.animate([{transform:'translateY(100%)'},{transform:'none'}],{duration:380,easing:ease});
 }
 function closeSheet(){
   ui.sheet=null;ui.draft=null;rendered=true;const bg=$('bg');
@@ -704,7 +704,7 @@ ACT.yes=()=>{const f=askFn;askFn=null;f&&f();closeSheet()};
 VIEWS.workers=()=>{
   const ws=active().sort((a,b)=>(b.rating||0)-(a.rating||0)),arc=S.cfg.workers.length-ws.length;
   return`<div class="row"><h2 class="sp">Работники <span class="mute" style="font-weight:500">${ws.length}</span></h2><button class="btn pri sm" data-act="wEdit" data-id="">+ Добавить</button></div>`+
-    `<div class="seg" style="margin-bottom:10px"><button class="${ui.wt==='c'?'on':''}" data-act="wTab" data-t="c">Карточки</button><button class="${ui.wt==='g'?'on':''}" data-act="wTab" data-t="g">График по дням</button></div>`+
+    `<div class="seg roll" style="margin-bottom:10px"><button class="${ui.wt==='c'?'on':''}" data-act="wTab" data-t="c">Карточки</button><button class="${ui.wt==='g'?'on':''}" data-act="wTab" data-t="g">График по дням</button></div>`+
     (ui.wt==='g'?sched(ws):'')+
     (ui.wt==='g'?'':ws.length?`<div class="wgrid">${ws.map(w=>`<div class="wcard"><div class="ln" style="background:${w.color}"></div><div class="nm">${esc(w.name)}</div><dl>
       <dt>Рейтинг</dt><dd><b>${w.rating||0}</b></dd><dt>Опыт</dt><dd>${esc((w.skills||[]).join(', ')||'—')}</dd><dt>Интерес</dt><dd>${w.interest||0}</dd>
@@ -1002,6 +1002,13 @@ function segSlide(m){
   if(!m)return;const seg=m.root.querySelectorAll('.seg')[m.i],on=seg&&seg.querySelector('.on'),old=seg&&seg.children[m.oi];if(!on||!on.animate||!old||old===on)return;
   // Без движения: подсветка гаснет на прежней кнопке и проявляется на новой
   const cs=getComputedStyle(on),acc=cs.backgroundColor,ink=cs.color,mute=getComputedStyle(old).color,opt={duration:280,easing:'ease-in-out'};
+  if(seg.classList.contains('roll')){
+    // Плашка переезжает с прежней кнопки на новую
+    const pill=document.createElement('div');pill.className='segpill';pill.style.left=on.offsetLeft+'px';pill.style.width=on.offsetWidth+'px';seg.appendChild(pill);on.classList.add('sliding');
+    const o={duration:320,easing:'cubic-bezier(.4,0,.2,1)'};
+    on.animate([{color:mute},{color:ink}],o);old.animate([{color:ink},{color:mute}],o);
+    const a=pill.animate([{transform:'translateX('+(old.offsetLeft-on.offsetLeft)+'px)',width:old.offsetWidth+'px'},{transform:'none',width:on.offsetWidth+'px'}],o),end=()=>{pill.remove();on.classList.remove('sliding')};
+    a.onfinish=end;a.oncancel=end;return}
   on.animate([{backgroundColor:'rgba(0,0,0,0)',color:mute},{backgroundColor:acc,color:ink}],opt);
   old.animate([{backgroundColor:acc,color:ink},{backgroundColor:'rgba(0,0,0,0)',color:mute}],opt);
 }
