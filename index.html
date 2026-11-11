@@ -828,7 +828,7 @@ function placeDays(pid){
   for(const id in S.pays){const y=S.pays[id];if(y.t!=='p'||y.ref!==pid)continue;const x=y.for&&ds.find(k=>k.d===y.for);if(x)x.got+=+y.sum||0;else pool+=+y.sum||0}
   ds.forEach(x=>{const use=Math.max(0,Math.min(x.due-x.got,pool));x.got+=use;pool-=use});
   // Переплата за конкретный день остаётся доп. прибылью и на другие дни не переносится
-  ds.rest=ds.reduce((a,x)=>a+Math.max(0,x.due-x.got),0);ds.extra=pool+ds.reduce((a,x)=>a+Math.max(0,x.got-x.due),0);
+  ds.pool=pool;ds.rest=ds.reduce((a,x)=>a+Math.max(0,x.due-x.got),0);ds.extra=pool+ds.reduce((a,x)=>a+Math.max(0,x.got-x.due),0);
   return ds;
 }
 const dayRows=pid=>placeDays(pid).filter(x=>x.due-x.got>.5).map(x=>`<div class="top" style="padding-left:15px"><span class="sp"><b style="font-size:14px">${WD[pd(x.d).getDay()]}, ${dLong(x.d)}</b><small class="num">начислено ${fmt(x.due)}${x.got?' · получено '+fmt(x.got):''}</small></span><b class="num">${rub(x.due-x.got)}</b><button class="btn sm" data-act="pay" data-t="p" data-ref="${pid}" data-for="${x.d}">Получил</button></div>`).join('');
@@ -884,9 +884,10 @@ VIEWS.stats=()=>{
     for(const w in r.w){const x=wk[w]=wk[w]||{n:0,h:0,pay:0};x.n++;x.h+=r.w[w].h;x.pay+=r.w[w].pay}
     for(const pid in S.days[d].p)(S.days[d].p[pid].objs||[]).forEach(o=>used.add(o))}
   const LP=ledger().p;
-  for(const pid in LP){const sur=LP[pid].extra||0;if(sur<=0)continue;
-    const dt=Object.values(S.pays).filter(y=>y.t==='p'&&y.ref===pid).map(y=>y.date).sort().pop(),i=dt?P.idx(dt):-1;
-    if(i>=0){B[i].rev+=sur;B[i].pl[pid]=(B[i].pl[pid]||0)+sur;rev+=sur}}
+  const addSur=(pid,d,sur)=>{const i=d&&sur>0?P.idx(d):-1;if(i>=0){B[i].rev+=sur;B[i].pl[pid]=(B[i].pl[pid]||0)+sur;rev+=sur}};
+  for(const pid in LP){const ds=placeDays(pid);
+    ds.forEach(x=>addSur(pid,x.d,x.got-x.due));
+    addSur(pid,Object.values(S.pays).filter(y=>y.t==='p'&&y.ref===pid&&!ds.some(k=>k.d===y.for)).map(y=>y.date).sort().pop(),ds.pool)}
   const sel=ui.st.i<P.n?ui.st.i:-1,c=ui.st.c;
   let h=`<h2>Статистика</h2><div class="seg">${[['week','Неделя'],['month','Месяц'],['year','Год']].map(([k,t])=>`<button class="${ui.st.m===k?'on':''}" data-act="stMode" data-m="${k}">${t}</button>`).join('')}</div>
     <div class="weeknav"><button class="ico" data-act="stNav" data-n="-1" aria-label="Назад">‹</button><div class="t" style="text-align:center">${P.title}</div>${P.idx(today)<0?'<button class="btn sm" data-act="stToday">Сегодня</button>':''}<button class="ico" data-act="stNav" data-n="1" aria-label="Вперёд">›</button></div>
