@@ -749,7 +749,7 @@ SHEETS.worker=()=>{
     <div class="fld"><label>Телефон для перевода</label><input type="tel" inputmode="tel" data-in="d" data-k="phone" value="${esc(d.phone||'')}" placeholder="+7 900 000-00-00"></div>
     <label class="lbl">Банк для перевода</label><div class="chips">${S.cfg.banks.map(b=>`<button class="chip plain ${d.bank===b.id?'on':''}" data-act="dBank" data-v="${b.id}"><i class="bdot" style="background:${b.color}"></i>${esc(b.name)}</button>`).join('')}</div>
     <div class="row" style="margin:8px 0 4px"><input id="nbk" placeholder="Новый банк"><button class="btn" data-act="dBankAdd">Добавить</button></div>
-    <div class="mute" style="font-size:12.5px;margin-bottom:12px">Цвет и название банка меняются в настройках (шестерёнка).</div>
+    ${d.bank&&BK(d.bank)?`<label class="lbl">Цвет банка «${esc(BK(d.bank).name)}»</label>${swatches(BCOL,BK(d.bank).color,'dBankCol','','bank')}`:'<div class="mute" style="font-size:12.5px;margin-bottom:12px">Выберите банк — появится выбор его цвета.</div>'}
     <label class="lbl">Цвет карточки</label>${swatches(WCOL,d.color,'dSet','data-k="color"','draft')}
     <div class="fld"><label>Рейтинг</label><div class="rng"><input type="range" min="0" max="10" data-in="d" data-k="rating" value="${d.rating}"><output>${d.rating}</output></div></div>
     <div class="fld"><label>Интерес</label><div class="rng"><input type="range" min="0" max="10" data-in="d" data-k="interest" value="${d.interest}"><output>${d.interest}</output></div></div>
@@ -762,6 +762,7 @@ SHEETS.worker=()=>{
 ACT.wEdit=({id})=>{const w=S.cfg.workers.find(x=>x.id===id);
   ui.draft=Object.assign({id:'',name:'',color:WCOL[S.cfg.workers.length%WCOL.length],rating:5,interest:5,skills:[],wd:[],car:'no',note:'',tg:'',phone:'',bank:''},w?JSON.parse(JSON.stringify(w)):{});
   openSheet('worker')};
+ACT.dBankCol=({v})=>{const b=BK(ui.draft.bank);if(b){b.color=v;save('config/main')}renderSheet()};
 ACT.dBank=({v})=>{ui.draft.bank=ui.draft.bank===v?'':v;renderSheet()};
 const addBank=v=>{let b=S.cfg.banks.find(x=>x.name.toLowerCase()===v.toLowerCase());if(!b){b={id:uid(),name:v,color:BCOL[S.cfg.banks.length%BCOL.length]};S.cfg.banks.push(b);save('config/main')}return b};
 ACT.dBankAdd=()=>{const v=$('nbk').value.trim();if(!v)return;ui.draft.bank=addBank(v).id;renderSheet()};
@@ -966,7 +967,7 @@ VIEWS.settings=()=>{
   <h3>Оформление</h3><div class="card"><label class="lbl">Тема</label><div class="seg" style="margin-bottom:14px"><button class="${THEME()==='dark'?'on':''}" data-act="theme" data-v="dark">Тёмная</button><button class="${THEME()==='light'?'on':''}" data-act="theme" data-v="light">Светлая</button></div><label class="lbl">Цвет приложения</label>${swatches(ACCENTS,s.accent||ACCENTS[0],'accent','','accent')}${GAS?'':iconUI()}</div>
   <h3>Места</h3><div class="card">${S.cfg.places.map(p=>`<div class="lst"><button class="pdot" style="background:${p.color};width:26px;height:26px;border-radius:8px" data-act="plColor" data-id="${p.id}" aria-label="Цвет места"></button><input data-in="plName" data-id="${p.id}" value="${esc(p.name)}"><button class="x" data-act="plDel" data-id="${p.id}" aria-label="Удалить место">✕</button></div>`).join('')}
     <div class="row" style="margin-top:6px"><input id="npl" placeholder="Новое место"><button class="btn" data-act="plAdd">Добавить</button></div></div>
-  <h3>Банки для перевода</h3><div class="card">${S.cfg.banks.map(b=>`<div class="lst"><button class="pdot" style="background:${b.color};width:26px;height:26px;border-radius:8px" data-act="bkColor" data-id="${b.id}" aria-label="Цвет банка"></button><input data-in="bkName" data-id="${b.id}" value="${esc(b.name)}"><button class="x" data-act="bkDel" data-id="${b.id}" aria-label="Удалить банк">✕</button></div>`).join('')}
+  <h3>Банки для перевода</h3><div class="card"><div class="mute" style="font-size:12.5px;margin-bottom:8px">Нажмите на цветной квадрат, чтобы выбрать цвет банка.</div>${S.cfg.banks.map(b=>`<div class="lst"><button class="pdot" style="background:${b.color};width:26px;height:26px;border-radius:8px" data-act="bkColor" data-id="${b.id}" aria-label="Цвет банка"></button><input data-in="bkName" data-id="${b.id}" value="${esc(b.name)}"><button class="x" data-act="bkDel" data-id="${b.id}" aria-label="Удалить банк">✕</button></div>`).join('')}
     <div class="row" style="margin-top:6px"><input id="nbk2" placeholder="Новый банк"><button class="btn" data-act="bkAdd">Добавить</button></div></div>
   <h3>Виды работ и умения</h3><div class="card"><div class="chips">${S.cfg.skills.map(k=>`<span class="chip plain">${esc(k)}<button class="x" style="width:22px;height:22px;margin-right:-6px" data-act="skDel" data-s="${esc(k)}" aria-label="Удалить">✕</button></span>`).join('')}</div>
     <div class="row" style="margin-top:10px"><input id="nskl" placeholder="Например, фундамент"><button class="btn" data-act="skAdd">Добавить</button></div></div>
@@ -1090,7 +1091,8 @@ ACT.pickBack=()=>{const b=ui.pick.back;ui.pick=null;if(b)openSheet(b.name,b.args
 ACT.pickOk=()=>{const p=ui.pick,c=pickHex(p);ui.pick=null;
   if(p.ch.indexOf('ic:')===0){IC[p.ch.slice(3)]=c;saveIcon();closeSheet();render();return}
   if(p.ch==='draft'){ui.draft.color=c;openSheet(p.back.name,p.back.args);return}
-  if(p.ch==='bank')BK(p.id).color=c;else if(p.ch==='place')PL(p.id).color=c;else S.cfg.settings[p.ch==='me'?'meColor':'accent']=c;
+  if(p.ch==='bank'){const b=BK(p.id||(ui.draft&&ui.draft.bank));if(b){b.color=c;save('config/main')}if(p.back&&p.back.name==='worker'){openSheet('worker');return}closeSheet();render();return}
+  if(p.ch==='place')PL(p.id).color=c;else S.cfg.settings[p.ch==='me'?'meColor':'accent']=c;
   save('config/main');closeSheet();render()};
 // (старый системный выбор цвета больше не используется)
 const CH={draft:el=>{ui.draft.color=el.value;renderSheet()},me:el=>ACT.meColor({v:el.value}),accent:el=>ACT.accent({v:el.value}),place:el=>ACT.plColorSet({id:el.dataset.id,v:el.value})};
