@@ -186,6 +186,16 @@ h3{font-size:12px;margin:18px 0 8px;color:var(--mute);text-transform:uppercase;l
 #toast.show{opacity:1;transform:translateX(-50%)}
 .tg{width:34px;height:34px;border-radius:10px;background:#229ED9;display:grid;place-items:center;flex:none;transition:transform .12s}
 .tg:active{transform:scale(.9)}
+.bank{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:7px;white-space:nowrap}
+.cpy{width:30px;height:30px;border-radius:8px;color:var(--mute);display:inline-grid;place-items:center;flex:none}
+.cpy .ic{width:17px;height:17px}
+.cpy:active{color:var(--accent);transform:scale(.9)}
+.wcard dd.ph{display:flex;align-items:center;gap:2px;grid-column:1/-1;font-weight:600;font-variant-numeric:tabular-nums}
+.wcard dd.ph span{overflow:hidden;text-overflow:ellipsis}
+.wcard dd.ph .cpy{width:24px;height:20px}
+.bdot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px;flex:none;border:1px solid rgba(128,128,128,.4)}
+.payto{display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 8px 8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card2)}
+.payto small{display:block;font-size:12px;color:var(--mute)}
 .tgl{color:#4db2e8;text-decoration:none;font-weight:600}
 .tg svg{width:18px;height:18px;fill:#fff}
 .crow .tg{width:30px;height:30px;border-radius:8px}
@@ -326,7 +336,7 @@ const CAR={no:'нет',lic:'права',car:'есть'};
 function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2600)}
 
 // ---------- данные ----------
-const defCfg=()=>({settings:{rw:500,rc:550,dh:9,me:'Я',mode:'h'},skills:['заезд','дренаж','септик','тёплый пол'],places:[],workers:[]});
+const defCfg=()=>({settings:{rw:500,rc:550,dh:9,me:'Я',mode:'h'},skills:['заезд','дренаж','септик','тёплый пол'],places:[],workers:[],banks:[{id:'sber',name:'Сбер',color:'#21a038'},{id:'tb',name:'Т-Банк',color:'#ffdd2d'},{id:'alfa',name:'Альфа',color:'#ef3124'},{id:'vtb',name:'ВТБ',color:'#0a5cf5'}]});
 let S={cfg:defCfg(),days:{},objs:{},pays:{}};
 const today=iso(new Date());
 const ui={wt:'c',ot:'a',pt:'w',tab:'cal',date:today,sheet:null,draft:null,st:{m:'month',a:today,c:'rev',i:-1}};
@@ -351,6 +361,12 @@ const tgName=v=>String(v||'').trim().replace(/^(https?:\/\/)?(t\.me\/|telegram\.
 // Из ника получается ссылка на t.me — телефон открывает по ней чат в приложении Telegram.
 // Адрес собран из кусочков нарочно: Apps Script принимает два слеша подряд за комментарий и обрезает строку
 const tgUrl=w=>'https:/'+'/t.me/'+tgName(w.tg);
+const BCOL=['#21a038','#ffdd2d','#ef3124','#0a5cf5','#7b3ff2','#ff6a00','#00b2a9','#1c1c1e'];
+const BK=id=>S.cfg.banks.find(b=>b.id===id);
+const inkOf=c=>{const n=parseInt(String(c).slice(1),16);return(.299*(n>>16)+.587*(n>>8&255)+.114*(n&255))/255>.6?'#1a1204':'#fff'};
+const bankTag=id=>{const b=id&&BK(id);return b?`<span class="bank" style="background:${b.color};color:${inkOf(b.color)}">${esc(b.name)}</span>`:''};
+const COPY_I='<svg class="ic" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg>';
+const cpBtn=v=>`<button class="cpy" data-act="copy" data-v="${esc(v)}" aria-label="Скопировать номер">${COPY_I}</button>`;
 const tgBtn=w=>w.tg?`<a class="tg" href="${tgUrl(w)}" target="_blank" rel="noopener" aria-label="Написать в Telegram: @${esc(w.tg)}"><svg viewBox="0 0 24 24"><path d="M21.5 3.6L2.6 10.9c-.8.3-.8 1.400.1 1.700l4.700 1.500 1.800 5.600c.2.700 1.100.9 1.600.4l2.600-2.500 4.600 3.400c.6.400 1.400.1 1.600-.6L22.800 4.800c.2-.9-.6-1.500-1.300-1.200zM9.600 14.300l8-6.400-6.300 7.300-.3 3.200z"/></svg></a>`:'';
 const mePay=P=>{const c=P.crew.me;return !c||c.o?'—':rub((+c.h||0)*(+P.rc||0))};
 const W=id=>id==='me'?Object.assign({},ME,{name:S.cfg.settings.me||'Я',color:S.cfg.settings.meColor||ME.color}):(S.cfg.workers.find(w=>w.id===id)||{id,name:'(удалён)',color:'#555',skills:[],wd:[]});
@@ -466,7 +482,7 @@ async function pull(first){
     S=n;render();
   }catch(e){setStatus('bad',e&&e.message==='forbidden'?'Неверный код доступа':'Нет связи')}
 }
-function normCfg(c){const d=defCfg();return{settings:Object.assign(d.settings,c.settings),skills:c.skills||d.skills,places:c.places||[],workers:c.workers||[]}}
+function normCfg(c){const d=defCfg();return{settings:Object.assign(d.settings,c.settings),skills:c.skills||d.skills,places:c.places||[],workers:c.workers||[],banks:c.banks||d.banks}}
 function setStatus(cls,text){$('status').innerHTML=`<span class="dot ${cls}"></span><span>${text}</span>`}
 function start(){
   if(LOCKED){setStatus('bad','Нет доступа');render();return}
@@ -488,9 +504,11 @@ const stopClose=()=>{clearTimeout(closeT);closeA.forEach(a=>a.cancel());closeA=[
 // Все анимации запускаются из кода через element.animate: так они одинаково работают в Safari на iPhone, Chrome и остальных браузерах
 function animateView(kind){
   if(!view.animate)return;
+  const dayOnly=kind==='dleft'||kind==='dright';if(dayOnly)kind=kind.slice(1);
   const side=kind==='left'||kind==='right',from=kind==='left'?'translateX(12px)':kind==='right'?'translateX(-12px)':kind==='fade'?'none':'translateY(14px)';
   if(kind!=='bars'){
     let els=[];[...view.children].forEach(el=>{if(el.classList.contains('wgrid'))els.push(...el.children);else els.push(el)});
+    if(dayOnly)els=els.filter(el=>!el.matches('.week,.weeknav'));
     if(kind==='soft')els=els.filter(el=>/\b(card|empty|wcard)\b/.test(el.className));
     els.forEach((el,i)=>el.animate([{opacity:0,transform:from},{opacity:1,transform:'none'}],{duration:side?300:340,delay:side?0:Math.min(i,6)*40,easing:side?'cubic-bezier(.4,0,.2,1)':EASE,fill:'backwards'}));
   }
@@ -561,6 +579,7 @@ VIEWS.cal=()=>{
 ACT.tab=({tab})=>{ui.tab=tab;try{localStorage.setItem('brigada-tab',tab)}catch(e){}view.scrollTop=0;render('up');
   const ic=document.querySelector('#tabs button.on svg,.gear.on svg');if(ic&&ic.animate)ic.animate([{transform:'scale(.7)'},{transform:'none'}],{duration:350,easing:'cubic-bezier(.3,1.6,.5,1)'})};
 ACT.day=({d})=>{ui.date=d;render()};
+ACT.daySwipe=({n})=>{const w0=monday(ui.date);ui.date=addDays(ui.date,+n);const pre=monday(ui.date)===w0?'d':'';render(pre+(+n>0?'left':'right'))};
 ACT.week=({n})=>{ui.date=addDays(ui.date,+n);render(+n>0?'left':'right')};
 ACT.today=()=>{ui.date=today;render('fade')};
 ACT.close=()=>closeSheet();
@@ -708,7 +727,7 @@ VIEWS.workers=()=>{
     (ui.wt==='g'?sched(ws):'')+
     (ui.wt==='g'?'':ws.length?`<div class="wgrid">${ws.map(w=>`<div class="wcard"><div class="ln" style="background:${w.color}"></div><div class="nm">${esc(w.name)}</div><dl>
       <dt>Рейтинг</dt><dd><b>${w.rating||0}</b></dd><dt>Опыт</dt><dd>${esc((w.skills||[]).join(', ')||'—')}</dd><dt>Интерес</dt><dd>${w.interest||0}</dd>
-      <dt>Дни</dt><dd>${WORDER.filter(n=>(w.wd||[]).includes(n)).map(n=>WD[n]).join(', ')||'—'}</dd><dt>Авто</dt><dd>${CAR[w.car]||'нет'}</dd><dt>Telegram</dt><dd>${w.tg?`<a class="tgl" href="${tgUrl(w)}" target="_blank" rel="noopener">@${esc(w.tg)}</a>`:'—'}</dd><dt>Заметка</dt><dd>${esc(w.note||'—')}</dd></dl>
+      <dt>Дни</dt><dd>${WORDER.filter(n=>(w.wd||[]).includes(n)).map(n=>WD[n]).join(', ')||'—'}</dd><dt>Авто</dt><dd>${CAR[w.car]||'нет'}</dd><dt>Telegram</dt><dd>${w.tg?`<a class="tgl" href="${tgUrl(w)}" target="_blank" rel="noopener">@${esc(w.tg)}</a>`:'—'}</dd><dt>Телефон</dt>${w.phone?`<dd class="ph"><span>${esc(w.phone)}</span>${cpBtn(w.phone)}</dd>`:'<dd>—</dd>'}<dt>Банк</dt><dd>${bankTag(w.bank)||'—'}</dd><dt>Заметка</dt><dd>${esc(w.note||'—')}</dd></dl>
       <div class="row" style="margin-top:10px;gap:6px"><button class="btn sm sp" style="margin:0" data-act="wEdit" data-id="${w.id}">Изменить</button>${tgBtn(w)}</div></div>`).join('')}</div>`
     :'<div class="empty">Пока никого нет.<br>Добавьте первого работника.</div>')+
     (arc?`<button class="btn ghost full" style="margin-top:12px" data-act="arch">Удалённые сотрудники · ${arc}</button>`:'');
@@ -727,6 +746,10 @@ SHEETS.worker=()=>{
     `<div class="acts" style="margin:0 0 4px">${d.id?'<button class="btn danger" data-act="wDel">Удалить</button>':''}<button class="btn pri" data-act="wSave">Сохранить</button></div>
     <div class="fld"><label>Имя</label><input data-in="d" data-k="name" value="${esc(d.name)}" placeholder="Имя"></div>
     <div class="fld"><label>Telegram</label><input data-in="d" data-k="tg" value="${esc(d.tg||'')}" placeholder="@username" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+    <div class="fld"><label>Телефон для перевода</label><input type="tel" inputmode="tel" data-in="d" data-k="phone" value="${esc(d.phone||'')}" placeholder="+7 900 000-00-00"></div>
+    <label class="lbl">Банк для перевода</label><div class="chips">${S.cfg.banks.map(b=>`<button class="chip plain ${d.bank===b.id?'on':''}" data-act="dBank" data-v="${b.id}"><i class="bdot" style="background:${b.color}"></i>${esc(b.name)}</button>`).join('')}</div>
+    <div class="row" style="margin:8px 0 4px"><input id="nbk" placeholder="Новый банк"><button class="btn" data-act="dBankAdd">Добавить</button></div>
+    <div class="mute" style="font-size:12.5px;margin-bottom:12px">Цвет и название банка меняются в настройках (шестерёнка).</div>
     <label class="lbl">Цвет карточки</label>${swatches(WCOL,d.color,'dSet','data-k="color"','draft')}
     <div class="fld"><label>Рейтинг</label><div class="rng"><input type="range" min="0" max="10" data-in="d" data-k="rating" value="${d.rating}"><output>${d.rating}</output></div></div>
     <div class="fld"><label>Интерес</label><div class="rng"><input type="range" min="0" max="10" data-in="d" data-k="interest" value="${d.interest}"><output>${d.interest}</output></div></div>
@@ -737,15 +760,20 @@ SHEETS.worker=()=>{
     <div class="fld"><label>Заметка</label><textarea rows="2" data-in="d" data-k="note">${esc(d.note)}</textarea></div>`;
 };
 ACT.wEdit=({id})=>{const w=S.cfg.workers.find(x=>x.id===id);
-  ui.draft=Object.assign({id:'',name:'',color:WCOL[S.cfg.workers.length%WCOL.length],rating:5,interest:5,skills:[],wd:[],car:'no',note:'',tg:''},w?JSON.parse(JSON.stringify(w)):{});
+  ui.draft=Object.assign({id:'',name:'',color:WCOL[S.cfg.workers.length%WCOL.length],rating:5,interest:5,skills:[],wd:[],car:'no',note:'',tg:'',phone:'',bank:''},w?JSON.parse(JSON.stringify(w)):{});
   openSheet('worker')};
+ACT.dBank=({v})=>{ui.draft.bank=ui.draft.bank===v?'':v;renderSheet()};
+const addBank=v=>{let b=S.cfg.banks.find(x=>x.name.toLowerCase()===v.toLowerCase());if(!b){b={id:uid(),name:v,color:BCOL[S.cfg.banks.length%BCOL.length]};S.cfg.banks.push(b);save('config/main')}return b};
+ACT.dBankAdd=()=>{const v=$('nbk').value.trim();if(!v)return;ui.draft.bank=addBank(v).id;renderSheet()};
+ACT.copy=({v})=>{rendered=true;const ok=()=>toast('Номер скопирован'),old=()=>{const t=document.createElement('textarea');t.value=v;t.style.cssText='position:fixed;opacity:0';document.body.appendChild(t);t.select();try{document.execCommand('copy');ok()}catch(e){toast('Не получилось скопировать')}t.remove()};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(v).then(ok,old);else old()};
 ACT.dSet=({k,v})=>{ui.draft[k]=v;renderSheet()};
 ACT.dTog=({k,v})=>{const a=ui.draft[k],x=k==='wd'?+v:v,i=a.indexOf(x);i>=0?a.splice(i,1):a.push(x);renderSheet()};
 ACT.dSkill=()=>{const v=$('nsk').value.trim().toLowerCase();if(!v)return;
   if(!S.cfg.skills.includes(v)){S.cfg.skills.push(v);save('config/main')}
   if(!ui.draft.skills.includes(v))ui.draft.skills.push(v);renderSheet()};
 IN.d=el=>{const k=el.dataset.k;ui.draft[k]=el.type==='range'?+el.value:el.value;if(el.type==='range')el.nextElementSibling.textContent=el.value};
-ACT.wSave=()=>{const d=ui.draft;d.name=d.name.trim();if(!d.name)return toast('Введите имя');d.tg=tgName(d.tg);
+ACT.wSave=()=>{const d=ui.draft;d.name=d.name.trim();if(!d.name)return toast('Введите имя');d.tg=tgName(d.tg);d.phone=(d.phone||'').trim();
   if(d.id){const i=S.cfg.workers.findIndex(x=>x.id===d.id);S.cfg.workers[i]=d}else{d.id=uid();S.cfg.workers.push(d)}
   save('config/main');closeSheet()};
 ACT.wDel=()=>{const id=ui.draft.id;ask('Убрать «'+ui.draft.name+'» в удалённые? Смены и долги по выплатам сохранятся, вернуть можно в любой момент.','Убрать',()=>{W(id).archived=true;save('config/main')})};
@@ -854,6 +882,7 @@ SHEETS.pay=({t,ref,f})=>{
   const hist=Object.keys(S.pays).filter(id=>S.pays[id].t===t&&S.pays[id].ref===ref).sort((a,b)=>S.pays[a].date<S.pays[b].date?1:-1);
   return head(x.name,t==='w'?'Выплата работнику':f?'Оплата от заказчика за '+WD[pd(f).getDay()]+', '+dLong(f):'Оплата от заказчика, почасовая')+
     `<div class="box" style="margin-top:0"><div><span>${t==='w'?'Заработал':'Начислено'}</span><span class="num">${rub(m.due)}</span></div><div><span>${t==='w'?'Выплачено':'Получено'}</span><span class="num">${rub(m.got)}</span></div><div class="big"><span>${t==='w'?'Осталось выплатить':'Осталось получить'}</span><span class="num">${bal<0&&t==='p'?'доп. прибыль +'+rub(-bal):rub(bal)}</span></div></div>
+    ${t==='w'&&(x.phone||bankTag(x.bank))?`<div class="payto"><span class="sp"><small>Перевод</small><b class="num">${esc(x.phone||'номер не указан')}</b></span>${bankTag(x.bank)}${x.phone?cpBtn(x.phone):''}</div>`:''}
     <div class="two" style="margin-top:12px"><div><label class="lbl">Сумма, ₽</label><input id="ps" inputmode="numeric" value="${bal>0?Math.round(bal):''}"></div><div><label class="lbl">${f?'За какой день':'Дата'}</label><input id="pdt" type="date" value="${f||today}"></div></div>
     <div class="fld"><label>Заметка</label><input id="pn" placeholder="Например, наличными"></div>
     <button class="btn pri full" data-act="payAdd" data-t="${t}" data-ref="${ref}" data-for="${f||''}">${t==='w'?'Записать выплату':'Записать оплату'}</button>
@@ -937,6 +966,8 @@ VIEWS.settings=()=>{
   <h3>Оформление</h3><div class="card"><label class="lbl">Тема</label><div class="seg" style="margin-bottom:14px"><button class="${THEME()==='dark'?'on':''}" data-act="theme" data-v="dark">Тёмная</button><button class="${THEME()==='light'?'on':''}" data-act="theme" data-v="light">Светлая</button></div><label class="lbl">Цвет приложения</label>${swatches(ACCENTS,s.accent||ACCENTS[0],'accent','','accent')}${GAS?'':iconUI()}</div>
   <h3>Места</h3><div class="card">${S.cfg.places.map(p=>`<div class="lst"><button class="pdot" style="background:${p.color};width:26px;height:26px;border-radius:8px" data-act="plColor" data-id="${p.id}" aria-label="Цвет места"></button><input data-in="plName" data-id="${p.id}" value="${esc(p.name)}"><button class="x" data-act="plDel" data-id="${p.id}" aria-label="Удалить место">✕</button></div>`).join('')}
     <div class="row" style="margin-top:6px"><input id="npl" placeholder="Новое место"><button class="btn" data-act="plAdd">Добавить</button></div></div>
+  <h3>Банки для перевода</h3><div class="card">${S.cfg.banks.map(b=>`<div class="lst"><button class="pdot" style="background:${b.color};width:26px;height:26px;border-radius:8px" data-act="bkColor" data-id="${b.id}" aria-label="Цвет банка"></button><input data-in="bkName" data-id="${b.id}" value="${esc(b.name)}"><button class="x" data-act="bkDel" data-id="${b.id}" aria-label="Удалить банк">✕</button></div>`).join('')}
+    <div class="row" style="margin-top:6px"><input id="nbk2" placeholder="Новый банк"><button class="btn" data-act="bkAdd">Добавить</button></div></div>
   <h3>Виды работ и умения</h3><div class="card"><div class="chips">${S.cfg.skills.map(k=>`<span class="chip plain">${esc(k)}<button class="x" style="width:22px;height:22px;margin-right:-6px" data-act="skDel" data-s="${esc(k)}" aria-label="Удалить">✕</button></span>`).join('')}</div>
     <div class="row" style="margin-top:10px"><input id="nskl" placeholder="Например, фундамент"><button class="btn" data-act="skAdd">Добавить</button></div></div>
   ${emptyDb?'<h3>Пример</h3><div class="card"><div class="mute" style="font-size:13.5px;margin-bottom:10px">Пока пусто. Можно загрузить выдуманные данные, чтобы посмотреть, как всё выглядит.</div><button class="btn full" data-act="demo">Загрузить пример</button></div>':''}
@@ -945,6 +976,12 @@ VIEWS.settings=()=>{
 IN.set=el=>{const k=el.dataset.k;S.cfg.settings[k]=k==='me'?el.value:num(el.value);save('config/main')};
 ACT.setMode=({m})=>{S.cfg.settings.mode=m;save('config/main');render()};
 IN.plName=el=>{PL(el.dataset.id).name=el.value;save('config/main')};
+IN.bkName=el=>{BK(el.dataset.id).name=el.value;save('config/main')};
+ACT.bkAdd=()=>{const v=$('nbk2').value.trim();if(!v)return;addBank(v);render()};
+ACT.bkDel=({id})=>ask('Удалить банк «'+BK(id).name+'»? У работников с этим банком он пропадёт.','Удалить',()=>{S.cfg.banks=S.cfg.banks.filter(b=>b.id!==id);S.cfg.workers.forEach(w=>{if(w.bank===id)w.bank=''});save('config/main')});
+SHEETS.bkColor=({id})=>BK(id)?head(BK(id).name,'Цвет банка')+swatches(BCOL,BK(id).color,'bkColorSet',`data-id="${id}"`,'bank'):null;
+ACT.bkColor=({id})=>openSheet('bkColor',{id});
+ACT.bkColorSet=({id,v})=>{BK(id).color=v;save('config/main');closeSheet()};
 ACT.plAdd=()=>{const v=$('npl').value.trim();if(!v)return;newPlace(v);render()};
 ACT.plDel=({id})=>ask('Удалить место «'+PL(id).name+'»? Прошлые дни с ним сохранятся.','Удалить',()=>{S.cfg.places=S.cfg.places.filter(p=>p.id!==id);save('config/main')});
 ACT.skAdd=()=>{const v=$('nskl').value.trim().toLowerCase();if(!v||S.cfg.skills.includes(v))return;S.cfg.skills.push(v);save('config/main');render()};
@@ -1053,7 +1090,7 @@ ACT.pickBack=()=>{const b=ui.pick.back;ui.pick=null;if(b)openSheet(b.name,b.args
 ACT.pickOk=()=>{const p=ui.pick,c=pickHex(p);ui.pick=null;
   if(p.ch.indexOf('ic:')===0){IC[p.ch.slice(3)]=c;saveIcon();closeSheet();render();return}
   if(p.ch==='draft'){ui.draft.color=c;openSheet(p.back.name,p.back.args);return}
-  if(p.ch==='place')PL(p.id).color=c;else S.cfg.settings[p.ch==='me'?'meColor':'accent']=c;
+  if(p.ch==='bank')BK(p.id).color=c;else if(p.ch==='place')PL(p.id).color=c;else S.cfg.settings[p.ch==='me'?'meColor':'accent']=c;
   save('config/main');closeSheet();render()};
 // (старый системный выбор цвета больше не используется)
 const CH={draft:el=>{ui.draft.color=el.value;renderSheet()},me:el=>ACT.meColor({v:el.value}),accent:el=>ACT.accent({v:el.value}),place:el=>ACT.plColorSet({id:el.dataset.id,v:el.value})};
@@ -1073,6 +1110,10 @@ document.addEventListener('touchend',e=>{
   if(c&&!e.touches.length&&!ui.sheet&&ui.tab==='cal'&&e.target.closest('.week,.weeknav')){
     const dx=c.clientX-tX;
     if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(c.clientY-tY)*1.5){ACT.week({n:dx<0?7:-7});lastTap=Date.now();return}
+  }
+  if(c&&!e.touches.length&&!ui.sheet&&ui.tab==='cal'&&e.target.closest('#view')){
+    const dx=c.clientX-tX;
+    if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(c.clientY-tY)*1.5){ACT.daySwipe({n:dx<0?1:-1});lastTap=Date.now();return}
   }
   if(!c||e.touches.length||Date.now()-tT>900||Math.abs(c.clientX-tX)>14||Math.abs(c.clientY-tY)>14)return;
   if(tap(e.target)){lastTap=Date.now();if(e.cancelable)e.preventDefault()}
