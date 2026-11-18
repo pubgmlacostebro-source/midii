@@ -372,19 +372,26 @@ const mePay=P=>{const c=P.crew.me;return !c||c.o?'—':rub((+c.h||0)*(+P.rc||0))
 const W=id=>id==='me'?Object.assign({},ME,{name:S.cfg.settings.me||'Я',color:S.cfg.settings.meColor||ME.color}):(S.cfg.workers.find(w=>w.id===id)||{id,name:'(удалён)',color:'#555',skills:[],wd:[]});
 const PL=id=>S.cfg.places.find(p=>p.id===id)||{id,name:'(место удалено)',color:'#555'};
 
-// Сколько работник получил за день на месте: по часам или вручную. Владелец сам себе не платит
-// Премия или вычет работнику за день
 const adjOf=c=>c&&c.bon?(c.neg?-1:1)*Math.abs(+c.bon||0):0;
-function payOf(P,w){const c=P.crew[w];if(!c||w==='me')return 0;return(P.mode==='m'?(+c.pay||0):(+c.h||0)*(+P.rw||0))+adjOf(c)}
-// Затраты для статистики: премии и вычеты входят, только если в дне включено «учитывать в статистике»
-const costOf=(P,w)=>payOf(P,w)-(P.adjStat===false?adjOf(P.crew[w]):0);
+const inStats=(P,c)=>c.adjStat??(P.adjStat===true);
+function basePay(P,w){
+  const c=P.crew[w];
+  if(!c||w==='me')return 0;
+  return P.mode==='m'?(+c.pay||0):(+c.h||0)*(+P.rw||0);
+}
+// Личные расчёты меняют выплату. Расходы меняют только отмеченные премии и штрафы.
+const payOf=(P,w)=>basePay(P,w)+(w==='me'?0:adjOf(P.crew[w]));
+function costOf(P,w){
+  const c=P.crew[w];
+  return basePay(P,w)+(w!=='me'&&c&&inStats(P,c)?adjOf(c):0);
+}
 // Почасовая выручка считается только по людям без объекта; люди на объекте — это затраты объекта
 function placeCalc(P){
-  let hw=0,hm=0,paid=0,paidObj=0,hours=0,n=0,out=0;
-  for(const w in P.crew){const c=P.crew[w],h=+c.h||0,p=costOf(P,w);out+=payOf(P,w);hours+=h;n++;
+  let hw=0,hm=0,paid=0,paidObj=0,hours=0,n=0;
+  for(const w in P.crew){const c=P.crew[w],h=+c.h||0,p=costOf(P,w);hours+=h;n++;
     if(c.o)paidObj+=p;else if(w==='me')hm+=h;else{hw+=h;paid+=p}}
   const rc=+P.rc||0,rev=(hw+hm)*rc,margin=hw*rc-paid;
-  return{out,rev,paid,paidObj,margin,me:hm*rc+margin,hours,n,free:Object.keys(P.crew).some(w=>!P.crew[w].o)};
+  return{rev,paid,paidObj,margin,me:hm*rc+margin,hours,n,free:Object.keys(P.crew).some(w=>!P.crew[w].o)};
 }
 // По каждому объекту: в какие дни он шёл и сколько ушло ребятам
 function objIndex(){
@@ -397,12 +404,29 @@ function objIndex(){
 }
 // Итоги дня. Полученное за объект делится поровну между днями работы на нём
 function dayStats(d,OI){
-  const r={rev:0,paid:0,byPlace:{},w:{}},day=S.days[d];if(!day)return r;
-  for(const pid in day.p){const P=day.p[pid],k=placeCalc(P);let pr=k.rev-k.paid-k.paidObj;
-    r.rev+=k.rev;r.paid+=k.paid+k.paidObj;
-    (P.objs||[]).forEach(id=>{const ob=S.objs[id];if(!ob||!OI[id])return;const sh=(+ob.received||0)/OI[id].dates.length;r.rev+=sh;pr+=sh});
-    r.byPlace[pid]=pr;
-    for(const w in P.crew)r.w[w]={h:+P.crew[w].h||0,pay:payOf(P,w)};}
+  const r={rev:0,paid:0,byPlace:{},byObject:{},w:{}},day=S.days[d];
+  if(!day)return r;
+  for(const pid in day.p){
+    const P=day.p[pid],k=placeCalc(P);
+    let rev=k.rev;
+    for(const id of P.objs||[]){
+      const ob=S.objs[id];
+      if(!ob||!OI[id])continue;
+      const share=(+ob.received||0)/OI[id].dates.length;
+      rev+=share;
+      r.byObject[id]=(r.byObject[id]||0)+share;
+    }
+    const paid=k.paid+k.paidObj;
+    r.rev+=rev;
+    r.paid+=paid;
+    r.byPlace[pid]=rev-paid;
+    for(const w in P.crew){
+      const c=P.crew[w],cost=costOf(P,w),worker=r.w[w]||(r.w[w]={h:0,pay:0});
+      worker.h+=+c.h||0;
+      worker.pay+=cost;
+      if(c.o&&S.objs[c.o]&&OI[c.o])r.byObject[c.o]=(r.byObject[c.o]||0)-cost;
+    }
+  }
   return r;
 }
 const busy=d=>{const b={},day=S.days[d];if(day)for(const pid in day.p)for(const w in day.p[pid].crew)b[w]={pid,o:day.p[pid].crew[w].o||''};return b};
@@ -568,7 +592,7 @@ VIEWS.cal=()=>{
   const pids=day?S.cfg.places.map(p=>p.id).filter(id=>day.p[id]).concat(Object.keys(day.p).filter(id=>!S.cfg.places.some(p=>p.id===id))):[];
   if(!pids.length)h+=`<div class="empty">На этот день пока никого нет.<br>Добавьте место и поставьте людей.</div>`;
   pids.forEach(pid=>{const P=day.p[pid],p=PL(pid),k=placeCalc(P),ws=Object.keys(P.crew);
-    h+=`<div class="card place"><button class="hd" data-act="calc" data-pid="${pid}"><span class="pdot" style="background:${p.color}"></span><b class="sp">${esc(p.name)}</b><span class="sum num">${k.n?`${k.n} чел · ${fmt(k.hours)} ч<br>ребятам ${rub(k.out)}`:'пусто'}</span><span class="mute">›</span></button>`;
+    h+=`<div class="card place"><button class="hd" data-act="calc" data-pid="${pid}"><span class="pdot" style="background:${p.color}"></span><b class="sp">${esc(p.name)}</b><span class="sum num">${k.n?`${k.n} чел · ${fmt(k.hours)} ч<br>ребятам ${rub(k.paid+k.paidObj)}`:'пусто'}</span><span class="mute">›</span></button>`;
     (P.objs||[]).forEach(o=>{const ob=S.objs[o]||{name:'(объект удалён)'};
       h+=`<div class="grp"><div class="gt">${tags(ob)}${esc(ob.name)}</div><div class="chips">${ws.filter(w=>P.crew[w].o===o).map(w=>chip(w,`data-pid="${pid}"`)).join('')}<button class="plus" data-act="addCrew" data-pid="${pid}" data-o="${o}">+ люди</button></div></div>`});
     const free=ws.filter(w=>!P.crew[w].o);
@@ -647,7 +671,7 @@ ACT.newObj=({pid})=>{const v=$('no').value.trim();if(!v)return toast('Введи
   const id=uid();S.objs[id]={name:v,types:ui.draft.types.slice(),place:pid,received:null,note:''};save('objects/'+id);ACT.pickObj({pid,o:id})};
 
 // Расчёт места за день
-const totHtml=P=>{const k=placeCalc(P);return`<div><span>Ребятам</span><b class="num">${rub(k.out)}</b></div>`+
+const totHtml=P=>{const k=placeCalc(P);return`<div><span>Расходы на ребят за день</span><b class="num">${rub(k.paid+k.paidObj)}</b></div>`+
   (k.free?`<div><span>Выручка по часам</span><span class="num">${rub(k.rev)}</span></div><div><span>Прибыль с ребят</span><span class="num">${rub(k.margin)}</span></div><div class="big"><span>${esc(S.cfg.settings.me||'Я')}</span><span class="num">${rub(k.me)}</span></div>`:'')};
 SHEETS.calc=({pid})=>{
   const P=S.days[ui.date]&&S.days[ui.date].p[pid];if(!P)return null;
@@ -655,7 +679,7 @@ SHEETS.calc=({pid})=>{
   const row=w=>{const x=W(w),c=P.crew[w];
     return`<div class="crow"><span class="bar" style="background:${x.color}"></span><span class="nm nmt"><span>${esc(x.name)}</span>${tgBtn(x)}</span>
       <label class="mini"><input inputmode="decimal" data-in="h" data-pid="${pid}" data-w="${w}" value="${c.h==null?'':c.h}" aria-label="Часы">ч</label>
-      ${w==='me'?`<span class="payv num" id="pay-me">${mePay(P)}</span>`:P.mode==='m'?`<label class="mini wide"><input inputmode="numeric" data-in="pay" data-pid="${pid}" data-w="${w}" value="${c.pay==null?'':c.pay}" aria-label="Получил">₽</label>`:`<span class="payv num" id="pay-${w}">${rub(payOf(P,w))}</span>`}
+      ${w==='me'?`<span class="payv num" id="pay-me">${mePay(P)}</span>`:P.mode==='m'?`<label class="mini wide"><input inputmode="numeric" data-in="pay" data-pid="${pid}" data-w="${w}" value="${c.pay==null?'':c.pay}" aria-label="Получил">₽</label>`:`<span class="payv num" id="pay-${w}">${rub(costOf(P,w))}</span>`}
       <button class="x" data-act="rmCrew" data-pid="${pid}" data-w="${w}" aria-label="Убрать">✕</button></div>
       <button class="tmline" data-act="tm" data-pid="${pid}" data-w="${w}">${IC_CLOCK}<span>${tmText(c)}</span></button>`};
   let h=head(PL(pid).name,WDL[pd(ui.date).getDay()]+', '+dLong(ui.date))+
@@ -667,9 +691,14 @@ SHEETS.calc=({pid})=>{
   if(!ws.length)h+='<div class="empty">Людей пока нет</div>';
   h+=`<button class="btn sm full" style="margin-top:8px" data-act="addCrew" data-pid="${pid}" data-o="">+ Работники</button>`;
   const adjW=ws.filter(w=>w!=='me');
-  if(adjW.length)h+=`<h3>Премии и вычеты</h3>${adjW.map(w=>{const x=W(w),c=P.crew[w];
-    return`<div class="crow"><span class="bar" style="background:${x.color}"></span><span class="nm">${esc(x.name)}</span><button class="chip plain adj ${c.neg?'neg':'pos'}" data-act="adjSign" data-pid="${pid}" data-w="${w}">${c.neg?'− Вычет':'+ Премия'}</button><label class="mini wide"><input inputmode="numeric" data-in="bon" data-pid="${pid}" data-w="${w}" value="${c.bon==null?'':c.bon}" placeholder="0">₽</label></div>`}).join('')}
-    <button class="chip plain ${P.adjStat===false?'':'on'}" style="margin-top:6px" data-act="adjStat" data-pid="${pid}">${P.adjStat===false?'Не учитывается в статистике':IC_OK+' Учитывается в статистике'}</button>`;
+  if(adjW.length)h+=`<h3>Корректировки выплат</h3>
+    <p class="mute" style="font-size:12.5px">Сотрудник заплатил за вас — прибавьте к выплате. Заплатили за сотрудника — вычтите. Ставьте галочку только для рабочей премии или штрафа.</p>
+    ${adjW.map(w=>{
+      const x=W(w),c=P.crew[w],include=inStats(P,c);
+      const label=include?(c.neg?'− Штраф':'+ Премия'):(c.neg?'− Вычет':'+ Возврат');
+      return `<div class="crow"><span class="bar" style="background:${x.color}"></span><span class="nm">${esc(x.name)}</span><button class="chip plain adj ${c.neg?'neg':'pos'}" data-act="adjSign" data-pid="${pid}" data-w="${w}">${label}</button><label class="mini wide"><input inputmode="numeric" data-in="bon" data-pid="${pid}" data-w="${w}" value="${c.bon==null?'':c.bon}" placeholder="0" aria-label="Сумма корректировки: ${esc(x.name)}">₽</label></div>
+        <button class="chip plain ${include?'on':''}" style="margin:2px 0 8px" aria-pressed="${include}" data-act="adjStat" data-pid="${pid}" data-w="${w}">${include?IC_OK+' ':''}Учитывать в статистике</button>`;
+    }).join('')}`;
   h+=`<div class="two" style="margin-top:12px"><div><label class="lbl">Ребятам, ₽/час</label><input inputmode="numeric" data-in="rate" data-k="rw" data-pid="${pid}" value="${P.rw==null?'':P.rw}"></div><div><label class="lbl">Заказчик, ₽/час</label><input inputmode="numeric" data-in="rate" data-k="rc" data-pid="${pid}" value="${P.rc==null?'':P.rc}"></div></div>
     <div class="fld"><label>Заметка</label><textarea rows="2" data-in="pnote" data-pid="${pid}">${esc(P.note||'')}</textarea></div>
     <div class="box" id="tot">${totHtml(P)}</div>
@@ -677,11 +706,11 @@ SHEETS.calc=({pid})=>{
   return h;
 };
 LIVE.calc=({pid})=>{const P=S.days[ui.date].p[pid];
-  for(const w in P.crew){const el=$('pay-'+w);if(el)el.textContent=w==='me'?mePay(P):rub(payOf(P,w))}
+  for(const w in P.crew){const el=$('pay-'+w);if(el)el.textContent=w==='me'?mePay(P):rub(costOf(P,w))}
   $('tot').innerHTML=totHtml(P)};
 ACT.calc=({pid})=>openSheet('calc',{pid});
 ACT.mode=({pid,m})=>{const P=S.days[ui.date].p[pid];
-  if(m==='m'&&P.mode!=='m')for(const w in P.crew)if(w!=='me'&&P.crew[w].pay==null)P.crew[w].pay=payOf(P,w)-adjOf(P.crew[w]);
+  if(m==='m'&&P.mode!=='m')for(const w in P.crew)if(w!=='me'&&P.crew[w].pay==null)P.crew[w].pay=basePay(P,w);
   P.mode=m;save('days/'+ui.date);renderSheet()};
 ACT.rmCrew=({pid,w})=>{delete S.days[ui.date].p[pid].crew[w];save('days/'+ui.date);renderSheet()};
 ACT.rmObjDay=({pid,o})=>{const P=S.days[ui.date].p[pid];P.objs=P.objs.filter(x=>x!==o);
@@ -710,7 +739,7 @@ IN.pay=el=>dayIn(el,P=>{P.crew[el.dataset.w].pay=num(el.value)});
 IN.rate=el=>dayIn(el,P=>{P[el.dataset.k]=num(el.value)});
 IN.bon=el=>dayIn(el,P=>{const v=num(el.value);P.crew[el.dataset.w].bon=v==null?null:Math.abs(v)});
 ACT.adjSign=({pid,w})=>{const c=S.days[ui.date].p[pid].crew[w];if(c.neg)delete c.neg;else c.neg=true;save('days/'+ui.date);renderSheet()};
-ACT.adjStat=({pid})=>{const P=S.days[ui.date].p[pid];if(P.adjStat===false)delete P.adjStat;else P.adjStat=false;save('days/'+ui.date);renderSheet()};
+ACT.adjStat=({pid,w})=>{const P=S.days[ui.date].p[pid],c=P.crew[w];c.adjStat=!inStats(P,c);save('days/'+ui.date);renderSheet()};
 IN.pnote=el=>dayIn(el,P=>{P.note=el.value});
 
 // Подтверждение
@@ -935,12 +964,13 @@ function period(){
   return{n:12,title:y,idx:d=>d.slice(0,4)===y?+d.slice(5,7)-1:-1,lab:i=>MONS[i][0].toUpperCase(),name:i=>MONN[i]+' '+y};
 }
 VIEWS.stats=()=>{
-  const P=period(),OI=objIndex(),B=Array.from({length:P.n},()=>({rev:0,paid:0,pl:{}})),wk={},used=new Set();let rev=0,paid=0;
+  const P=period(),OI=objIndex(),B=Array.from({length:P.n},()=>({rev:0,paid:0,pl:{}})),wk={},objects={};let rev=0,paid=0;
   for(const d in S.days){const i=P.idx(d);if(i<0)continue;const r=dayStats(d,OI);
     B[i].rev+=r.rev;B[i].paid+=r.paid;rev+=r.rev;paid+=r.paid;
     for(const pid in r.byPlace)B[i].pl[pid]=(B[i].pl[pid]||0)+r.byPlace[pid];
     for(const w in r.w){const x=wk[w]=wk[w]||{n:0,h:0,pay:0};x.n++;x.h+=r.w[w].h;x.pay+=r.w[w].pay}
-    for(const pid in S.days[d].p)(S.days[d].p[pid].objs||[]).forEach(o=>used.add(o))}
+    for(const id in r.byObject)objects[id]=(objects[id]||0)+r.byObject[id];
+  }
   const LP=ledger().p;
   const addSur=(pid,d,sur)=>{const i=d&&sur>0?P.idx(d):-1;if(i>=0){B[i].rev+=sur;B[i].pl[pid]=(B[i].pl[pid]||0)+sur;rev+=sur}};
   for(const pid in LP)placeDays(pid).presents.forEach(x=>addSur(pid,x.date,x.sum));
@@ -965,7 +995,12 @@ VIEWS.stats=()=>{
   h+='</div>';
   const top=Object.keys(wk).sort((a,b)=>wk[b].n-wk[a].n||wk[b].h-wk[a].h);
   h+=`<h3>Кто сколько выходил</h3><div class="card">${top.map(w=>{const x=W(w);return`<div class="top"><span class="bar" style="background:${x.color}"></span><span class="sp"><b>${esc(x.name)}</b><small class="num">${wk[w].n} ${plural(wk[w].n,'смена','смены','смен')} · ${fmt(wk[w].h)} ч</small></span><span class="num">${w==='me'?'':rub(wk[w].pay)}</span></div>`}).join('')||'<div class="mute">Нет смен за период</div>'}</div>`;
-  const ty={};used.forEach(o=>{const ob=S.objs[o];if(!ob)return;const key=typesOf(ob).join(' + ')||'без вида',t=ty[key]=ty[key]||{n:0,p:0};t.n++;t.p+=(+ob.received||0)-OI[o].cost});
+  const ty={};
+  for(const id in objects){
+    const key=typesOf(S.objs[id]).join(' + ')||'без вида',t=ty[key]||(ty[key]={n:0,p:0});
+    t.n++;
+    t.p+=objects[id];
+  }
   h+=`<h3>Прибыль по объектам</h3><div class="card">${Object.keys(ty).sort((a,b)=>ty[b].p-ty[a].p).map(t=>`<div class="top"><span class="tag">${esc(t)}</span><span class="sp"><small class="num">${ty[t].n} шт.</small></span><b class="num ${ty[t].p<0?'bad':''}">${ty[t].p>0?'+':''}${rub(ty[t].p)}</b></div>`).join('')||'<div class="mute">Нет объектов за период</div>'}</div>`;
   return h;
 };
